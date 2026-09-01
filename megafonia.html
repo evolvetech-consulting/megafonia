@@ -255,6 +255,13 @@ details.a-mano summary:hover{color:var(--tinta)}
   padding:8px 15px; border-radius:20px; cursor:pointer; font-size:13.5px; font-weight:500;
 }
 .selector-msj button:not([aria-selected="true"]) { opacity:.9 }
+.selector-paleta{display:inline-flex; gap:2px; background:var(--panel2);
+  border:1px solid var(--linea); border-radius:20px; padding:3px}
+.selector-paleta button{
+  background:none; border:0; cursor:pointer; color:var(--suave);
+  padding:5px 13px; border-radius:20px; font-size:13px; font-weight:500;
+}
+.selector-paleta button[aria-selected="true"]{background:var(--acento); color:var(--acento-tinta)}
 .selector-msj button[aria-selected="true"]{
   background:var(--acento-suave); border-color:var(--acento); color:var(--acento);
 }
@@ -1049,6 +1056,10 @@ function vistaCompartir(){
       '<div class="acciones" style="margin-top:16px">' +
         '<button class="btn primario" id="btn-copiar-img">Copiar imagen</button>' +
         '<button class="btn" id="btn-imagen">Descargar</button>' +
+        '<span class="selector-paleta">' +
+          '<button data-paleta="oscura" aria-selected="' + (paletaImagen==="oscura") + '">Oscura</button>' +
+          '<button data-paleta="clara" aria-selected="' + (paletaImagen==="clara") + '">Clara</button>' +
+        '</span>' +
         '<span style="color:var(--suave);font-size:13px">Copiala y pegala en el grupo, ' +
           'como la planilla de siempre.</span>' +
       '</div></section>' : "") +
@@ -1078,13 +1089,23 @@ function vistaCompartir(){
 
 /* ═══ Imagen de la planilla ═════════════════════════════════════════ */
 
-const IMG = {
-  ancho:1580, filaAlto:78, cabeceraAlto:84, titulo:118, margen:34, colFecha:250, logo:62,
-  tinta:"#16222D", suave:"#5D7383", papel:"#FFFFFF", cebra:"#F3F7F9",
-  linea:"#DCE5EB", acento:"#0B6E8A",
-  puestos:{camara:"#6F4FA3", audio:"#B65418", produccion:"#1B7357",
-           streaming:"#A93A55", tarde:"#2F6BA5"}
+const IMG = {ancho:1580, filaAlto:78, cabeceraAlto:84, titulo:118, margen:34,
+             colFecha:250, logo:62};
+
+// Dos versiones de la misma planilla. La oscura es la que se ve en pantalla;
+// la clara imprime mejor y pesa menos en un chat con fondo blanco.
+const PALETAS = {
+  clara: {tinta:"#16222D", suave:"#5D7383", papel:"#FFFFFF", cebra:"#F3F7F9",
+          linea:"#DCE5EB", acento:"#0B6E8A", sobreAcento:"#FFFFFF",
+          puestos:{camara:"#6F4FA3", audio:"#B65418", produccion:"#1B7357",
+                   streaming:"#A93A55", tarde:"#2F6BA5"}},
+  oscura:{tinta:"#E7EFF4", suave:"#93A9B7", papel:"#16222D", cebra:"#1D2B36",
+          linea:"#2B3D4A", acento:"#4CB7D4", sobreAcento:"#0A1F28",
+          puestos:{camara:"#AC8EDB", audio:"#E5904F", produccion:"#52C29A",
+                   streaming:"#E37E95", tarde:"#73A8DE"}}
 };
+let paletaImagen = "oscura";
+try{ paletaImagen = localStorage.getItem("megafonia:paleta") || "oscura"; }catch(e){}
 
 let imgLogo = null;
 function cargarLogo(){
@@ -1098,6 +1119,7 @@ function cargarLogo(){
 }
 
 function dibujarPlanilla(){
+  const P = PALETAS[paletaImagen] || PALETAS.oscura;
   const {anio, mes} = mesVigente();
   const plan = planningDe(anio, mes);
   const filas = plan.fechas;
@@ -1112,7 +1134,7 @@ function dibujarPlanilla(){
   const fuente = (peso, px, familia) => peso + " " + px + 'px ' + familia +
     ', "Helvetica Neue", Arial, sans-serif';
 
-  c.fillStyle = IMG.papel; c.fillRect(0, 0, IMG.ancho, alto);
+  c.fillStyle = P.papel; c.fillRect(0, 0, IMG.ancho, alto);
 
   // Título, con el símbolo a la izquierda
   let x = IMG.margen;
@@ -1122,10 +1144,10 @@ function dibujarPlanilla(){
   }
   const baseTitulo = IMG.margen + IMG.logo/2 + 14;
   c.textBaseline = "alphabetic"; c.textAlign = "left";
-  c.fillStyle = IMG.tinta; c.font = fuente(700, 40, "Archivo");
+  c.fillStyle = P.tinta; c.font = fuente(700, 40, "Archivo");
   c.fillText("MEGAFONÍA", x, baseTitulo);
   const anchoMarca = c.measureText("MEGAFONÍA").width;
-  c.fillStyle = IMG.acento; c.font = fuente(600, 40, "Archivo");
+  c.fillStyle = P.acento; c.font = fuente(600, 40, "Archivo");
   c.fillText(MESES[mes].toUpperCase() + " " + anio, x + anchoMarca + 22, baseTitulo);
 
   const x0 = IMG.margen, y0 = IMG.titulo;
@@ -1133,11 +1155,11 @@ function dibujarPlanilla(){
 
   // Cabecera, como la tabla de la pantalla: el mes en la esquina y cada
   // puesto con su punto de color delante.
-  c.fillStyle = IMG.acento;
+  c.fillStyle = P.acento;
   c.fillRect(x0, y0, anchoTabla, IMG.cabeceraAlto);
   const medio = y0 + IMG.cabeceraAlto/2;
 
-  c.fillStyle = "#FFFFFF"; c.textBaseline = "middle"; c.textAlign = "left";
+  c.fillStyle = P.sobreAcento; c.textBaseline = "middle"; c.textAlign = "left";
   c.font = fuente(600, 24, "Archivo");
   const mesEsquina = MESES[mes].charAt(0).toUpperCase() + MESES[mes].slice(1) + " " + anio;
   c.fillText(mesEsquina, x0 + 22, medio);
@@ -1149,23 +1171,23 @@ function dibujarPlanilla(){
     const ancho = c.measureText(etiqueta).width;
     const puntoX = cx - (ancho + 13 + 11)/2;
 
-    c.fillStyle = IMG.puestos[p.id];         // el punto del color del puesto
+    c.fillStyle = P.puestos[p.id];           // el punto del color del puesto
     c.beginPath();
     if(c.roundRect) c.roundRect(puntoX, medio - 5.5, 11, 11, 3);
     else c.rect(puntoX, medio - 5.5, 11, 11);
     c.fill();
 
-    c.fillStyle = "#FFFFFF"; c.textAlign = "left";
+    c.fillStyle = P.sobreAcento; c.textAlign = "left";
     c.fillText(etiqueta, puntoX + 11 + 13, medio);
   });
 
   // Filas
   filas.forEach((f, i) => {
     const y = y0 + IMG.cabeceraAlto + i*IMG.filaAlto;
-    c.fillStyle = i % 2 ? IMG.cebra : IMG.papel;
+    c.fillStyle = i % 2 ? P.cebra : P.papel;
     c.fillRect(x0, y, anchoTabla, IMG.filaAlto);
 
-    c.textAlign = "left"; c.fillStyle = IMG.tinta;
+    c.textAlign = "left"; c.fillStyle = P.tinta;
     c.font = fuente(600, 24, "Archivo");
     c.fillText(DIAS_SEM[f.dow] + " " + f.dia, x0 + 22, y + IMG.filaAlto/2);
 
@@ -1173,7 +1195,7 @@ function dibujarPlanilla(){
     PUESTOS.forEach((p, j) => {
       const q = f.puestos[p.id].filter(Boolean).map(nombreDe);
       const cx = x0 + IMG.colFecha + anchoCol*j + anchoCol/2;
-      c.fillStyle = q.length ? IMG.tinta : IMG.suave;
+      c.fillStyle = q.length ? P.tinta : P.suave;
       const txt = q.length ? q.join(" · ") : "—";
       if(q.length === 2 && c.measureText(txt).width > anchoCol - 26){
         c.font = fuente(400, 21, '"IBM Plex Sans"');
@@ -1192,7 +1214,7 @@ function dibujarPlanilla(){
   });
 
   // Rejilla
-  c.strokeStyle = IMG.linea; c.lineWidth = 1;
+  c.strokeStyle = P.linea; c.lineWidth = 1;
   for(let i = 0; i <= filas.length; i++){
     const y = y0 + IMG.cabeceraAlto + i*IMG.filaAlto + .5;
     c.beginPath(); c.moveTo(x0, y); c.lineTo(x0 + anchoTabla, y); c.stroke();
@@ -1483,6 +1505,11 @@ document.addEventListener("click", ev => {
   if(t.id === "btn-guardar") return guardar();
 
   if(t.dataset.msj){ tipoMsj = t.dataset.msj; render(); return; }
+  if(t.dataset.paleta){
+    paletaImagen = t.dataset.paleta;
+    try{ localStorage.setItem("megafonia:paleta", paletaImagen); }catch(e){}
+    render(); return;
+  }
   if(t.id === "btn-copiar-img") return copiarImagen();
   if(t.id === "btn-imagen") return descargarImagen();
   if(t.id === "btn-exportar") return exportarDatos();
