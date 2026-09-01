@@ -1,6 +1,6 @@
 {
-  "name": "Megafonía",
-  "short_name": "Megafonía",
+  "name": "Planning",
+  "short_name": "Planning",
   "description": "Planning del equipo de audiovisuales",
   "start_url": "./",
   "display": "standalone",
