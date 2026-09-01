@@ -138,33 +138,15 @@ main{max-width:1180px; margin:0 auto; padding:24px 20px 96px}
 }
 .punto{width:7px; height:7px; border-radius:2px; flex:none}
 .slots{display:flex; flex-direction:column; gap:5px; min-width:0}
-.slot{display:flex; align-items:center; gap:4px; min-width:0}
-.slot select{flex:1; min-width:0}
-
-/* Marcar una baja es lo que más se hace en el mes: un botón por asignación,
-   discreto hasta que se lo busca, y siempre visible en pantallas táctiles. */
-.no-puede{
-  flex:none; background:none; border:1px solid transparent; border-radius:20px;
-  cursor:pointer; padding:3px 9px; color:var(--tenue); white-space:nowrap;
-  font:500 10px/1.5 "IBM Plex Mono",monospace; letter-spacing:.04em;
-  opacity:0; transition:opacity .12s, color .12s, border-color .12s;
+/* Ámbar: está asignado un día que anotaste que no puede. No es un error de
+   la app, es alguien a quien hay que reemplazar. Distinto del rojo, que sí
+   es imposible: la misma persona en dos puestos a la vez. */
+select.asig.ausente{
+  border-color:color-mix(in srgb, var(--alerta) 60%, transparent);
+  background-color:color-mix(in srgb, var(--alerta) 10%, transparent);
+  color:var(--alerta); font-weight:500;
 }
-.puesto:hover .no-puede, .no-puede:focus-visible{opacity:1}
-.no-puede:hover{color:var(--alerta); border-color:var(--alerta);
-  background:color-mix(in srgb, var(--alerta) 10%, transparent)}
-@media (hover:none){ .no-puede{opacity:.75} }
-
-/* La celda que quedó libre porque alguien avisó: se distingue de un hueco
-   cualquiera, y dice de quién es la baja. */
-select.asig.libre{
-  border-color:color-mix(in srgb, var(--alerta) 55%, transparent);
-  background-color:color-mix(in srgb, var(--alerta) 8%, transparent);
-  color:var(--alerta); font-style:normal;
-}
-.quien-falta{
-  flex:none; font:500 10px/1.5 "IBM Plex Mono",monospace; color:var(--alerta);
-  opacity:.85; white-space:nowrap; max-width:9ch; overflow:hidden; text-overflow:ellipsis;
-}
+select.asig.ausente:hover{background-color:color-mix(in srgb, var(--alerta) 16%, transparent)}
 select.asig{
   width:100%; background:transparent; border:1px solid transparent;
   border-radius:7px; padding:5px 7px; cursor:pointer; font-size:14px;
@@ -827,7 +809,7 @@ function choques(plan){
     PUESTOS.forEach(pu => f.puestos[pu.id].forEach(id => {
       if(id && !puedeEse(id, f.dia, restricciones))
         salida.push({dia:f.dia, dow:f.dow, id:id, disponibilidad:true,
-                     motivo:"est\u00e1 en " + pu.label.toLowerCase() + " pero anotaste que ese d\u00eda no puede"});
+                     motivo:"no puede este d\u00eda y est\u00e1 en " + pu.label.toLowerCase()});
     }));
     const manana = new Map();          // id -> puestos de la mañana que ocupa
     PUESTOS.forEach(pu => {
@@ -862,8 +844,10 @@ function vistaPlanning(plan, activos){
     n + PUESTOS.reduce((k,p) => k + f.puestos[p.id].filter(x => !x).length, 0), 0);
   const dobles = choques(plan);
 
-  const marcados = new Set(dobles.map(d => d.dia + "|" + d.id));
-  const reglas = restriccionesDe(claveMes(mesVigente().anio, mesVigente().mes));
+  // Rojo: está en dos puestos a la vez. Ámbar: anotaste que ese día no puede.
+  const rojos = new Set(dobles.filter(d => !d.disponibilidad).map(d => d.dia + "|" + d.id));
+  const ambar = new Map(dobles.filter(d => d.disponibilidad)
+    .map(d => [d.dia + "|" + d.id, (nombreDe(d.id) || "") + " " + d.motivo]));
   const tarjetas = plan.fechas.map(f =>
     '<article class="fecha">' +
       '<div class="fecha-tope"><span class="dia">' + DIAS_SEM[f.dow] + '</span>' +
@@ -875,8 +859,8 @@ function vistaPlanning(plan, activos){
           '<div class="slots">' +
             f.puestos[p.id].map((asignado, i) =>
               selectorAsig(f.dia, p, i, asignado, activos,
-                           asignado && marcados.has(f.dia + "|" + asignado),
-                           !asignado && bajaDe(reglas, f.dia, p.id, i))).join("") +
+                           asignado && rojos.has(f.dia + "|" + asignado),
+                           asignado && ambar.get(f.dia + "|" + asignado))).join("") +
           '</div>' +
         '</div>').join("") +
     '</article>').join("");
@@ -910,12 +894,6 @@ function vistaPlanning(plan, activos){
   // de vez en cuando — la disponibilidad, los avisos y el reparto.
   return '<div class="rejilla">' + tarjetas + '</div>' +
     panelDisponibilidad() + tira + panelReparto(plan);
-}
-
-// Si esta celda quedó vacía porque alguien avisó, devuelve esa regla.
-function bajaDe(reglas, dia, puesto, idx){
-  return reglas.find(r => r.tipo === "no" && r.dias.includes(dia) &&
-                          r.puesto === puesto && r.idx === idx) || null;
 }
 
 function panelDisponibilidad(){
@@ -968,6 +946,8 @@ function panelDisponibilidad(){
 }
 
 function selectorAsig(dia, puesto, idx, asignado, activos, chocado, ausente){
+  // `chocado`: está en dos puestos a la vez, es un error. `ausente`: anotaste
+  // que ese día no puede, hay que reemplazarlo. Se ven distinto a propósito.
   const candidatos = activos.filter(p => p.puestos.includes(puesto.id));
   const opciones = ['<option value=""' + (asignado ? "" : " selected") + '>— a cubrir —</option>']
     .concat(candidatos.map(p =>
@@ -976,24 +956,13 @@ function selectorAsig(dia, puesto, idx, asignado, activos, chocado, ausente){
   if(asignado && !candidatos.some(p => p.id === asignado))
     opciones.push('<option value="' + asignado + '" selected>' + esc(nombreDe(asignado) || "?") + ' (fuera)</option>');
 
-  const select = '<select class="asig' + (asignado ? "" : " vacio") + (chocado ? " chocado" : "") +
-    (ausente ? " libre" : "") + '" data-dia="' + dia +
-    '" data-puesto="' + puesto.id + '" data-idx="' + idx + '"' + (soloLectura ? " disabled" : "") + '>' +
-    opciones.join("") + '</select>';
-
-  // Marcar la baja de alguien es lo que más se hace durante el mes: un solo toque.
-  const boton = (asignado && !soloLectura)
-    ? '<button class="no-puede" data-no-puede="1" data-dia="' + dia + '" data-puesto="' + puesto.id +
-      '" data-idx="' + idx + '" data-quien="' + asignado + '" title="' +
-      esc(nombreDe(asignado) || "") + ' avisó que no puede este día" ' +
-      'aria-label="Marcar que no puede">no puede</button>'
-    : "";
-
-  const nota = ausente
-    ? '<span class="quien-falta" title="' + esc(ausente.texto || "") + '">' +
-      esc(nombreDe(ausente.id) || "?") + ' no puede</span>' : "";
-
-  return '<div class="slot">' + select + boton + nota + '</div>';
+  // Una sola marca por celda. Si además no puede, gana el ámbar: al
+  // reemplazarlo se resuelve también el doble puesto.
+  return '<select class="asig' + (asignado ? "" : " vacio") +
+    (ausente ? " ausente" : chocado ? " chocado" : "") +
+    '" data-dia="' + dia + '" data-puesto="' + puesto.id + '" data-idx="' + idx + '"' +
+    (ausente ? ' title="' + esc(ausente) + '"' : "") +
+    (soloLectura ? " disabled" : "") + '>' + opciones.join("") + '</select>';
 }
 
 function panelReparto(plan){
@@ -1449,21 +1418,6 @@ document.addEventListener("click", ev => {
     const d = new Date(Date.UTC(anio, mes + Number(t.dataset.salto), 1));
     E.mesActual = claveMes(d.getUTCFullYear(), d.getUTCMonth());
     render(); return;
-  }
-  if(t.dataset.noPuede){
-    const dia = Number(t.dataset.dia), puesto = t.dataset.puesto;
-    const idx = Number(t.dataset.idx), quien = t.dataset.quien;
-    const {anio, mes} = mesVigente();
-    const fecha = planningDe(anio, mes).fechas.find(f => f.dia === dia);
-    restriccionesDe(claveMes(anio, mes)).push({
-      id: quien, tipo: "no", dias: [dia], puesto: puesto, idx: idx,
-      texto: (nombreDe(quien) || "") + " avisó que no puede el " +
-             DIAS_SEM[fecha.dow].toLowerCase() + " " + dia
-    });
-    fecha.puestos[puesto][idx] = null;      // el puesto queda a cubrir
-    marcarSucio(); render();
-    brindis(nombreDe(quien) + " queda fuera del " + dia + ". Generá de nuevo o cubrilo a mano.");
-    return;
   }
   if(t.id === "btn-refrescar"){
     if(sucio && !soloLectura &&
