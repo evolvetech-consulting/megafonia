@@ -352,20 +352,37 @@ table.planilla td.hueco{color:var(--tenue)}
 .puestos-cfg .cab{
   font:500 10px/1 "IBM Plex Mono",monospace; letter-spacing:.08em;
   text-transform:uppercase; color:var(--tenue); padding-bottom:10px;
-  border-bottom:1px solid var(--linea); white-space:nowrap;
+  white-space:nowrap;
 }
+/* Una línea que cruza la fila entera: apoyarla en el borde de cada celda la
+   dejaba partida, y el selector de color ni siquiera la dibujaba. */
+.puestos-cfg .linea{grid-column:1/-1; height:1px; background:var(--linea); padding:0}
+.puestos-cfg > .puesto-cfg:last-child > .linea{background:transparent}
 .puestos-cfg .cab.centro{text-align:center}
-.puesto-cfg{display:contents}
-.puestos-cfg > .puesto-cfg > *{
-  border-bottom:1px solid var(--linea); padding-top:11px; padding-bottom:11px;
+.puestos-cfg .cab .ayuda{
+  background:none; border:1px solid var(--linea); color:var(--tenue);
+  border-radius:50%; cursor:pointer; width:15px; height:15px; padding:0;
+  margin-left:5px; font:600 10px/1 "IBM Plex Mono",monospace; vertical-align:middle;
 }
-.puestos-cfg > .puesto-cfg:last-child > *{border-bottom:0}
+.puestos-cfg .cab .ayuda:hover{color:var(--acento); border-color:var(--acento)}
+.explica{
+  margin-top:15px; padding:13px 16px; background:var(--acento-suave);
+  border-radius:var(--r); color:var(--tinta); font-size:13.5px; line-height:1.6;
+  max-width:70ch; border-left:3px solid var(--acento);
+}
+.puesto-cfg{display:contents}
+.puestos-cfg > .puesto-cfg > *{padding-top:11px; padding-bottom:11px}
+/* La línea es una celda más: hay que sacarle el relleno que llevan las otras,
+   o se convierte en una barra de 23px de alto. */
+.puestos-cfg > .linea, .puestos-cfg > .puesto-cfg > .linea{
+  padding:0; margin:0; height:1px; min-height:1px; align-self:stretch;
+}
 .puesto-cfg .tinte{
   width:26px; height:26px; border:1px solid var(--linea);
   border-radius:7px; background:none; cursor:pointer; box-sizing:border-box;
 }
 /* El selector de color es un input: el relleno de columna va como margen. */
-.puestos-cfg > .puesto-cfg > .tinte{padding:0; margin:11px 7px 11px 0}
+.puestos-cfg > .puesto-cfg > .tinte{padding:0; margin:11px 7px}
 .puesto-cfg .rotulo{
   min-width:0; width:100%; background:transparent; border:1px solid var(--linea);
   border-radius:7px; padding:7px 10px; font-weight:500; font-size:14.5px;
@@ -712,7 +729,7 @@ function montarRaiz(){
   else document.addEventListener("DOMContentLoaded", montarRaiz, {once:true});
 }
 montarRaiz();
-let avisosAbiertos = false;
+let avisosAbiertos = false, ayudaTurno = false;
 try{ avisosAbiertos = localStorage.getItem("megafonia:avisos") === "1"; }catch(e){}
 let sucio = false, vista = "planning", tipoMsj = "planning", soloLectura = false,
     capArtifact = null, modoLocal = false;
@@ -1261,13 +1278,16 @@ function vistaEquipo(){
         '<button class="icono peligro' + (esperando("puesto:" + pu.id) ? " confirmando" : "") +
         '" data-borrar-puesto="' + i + '" title="Quitar este puesto">' +
         (esperando("puesto:" + pu.id) ? "¿seguro?" : "✕") + '</button>') +
+      '<span class="linea"></span>' +
     '</div>').join("");
 
   const bloquePuestos = '<div class="puestos-cfg">' +
     '<span class="cab"></span><span class="cab">Puesto</span>' +
-    '<span class="cab centro" title="Un segundo turno el mismo día, como el de la tarde">' +
-      'Otro turno</span>' +
+    '<span class="cab centro">Otro turno' +
+      '<button class="ayuda" id="btn-ayuda-turno" aria-label="Qué es otro turno">?</button>' +
+    '</span>' +
     '<span class="cab centro">Personas</span><span class="cab"></span>' +
+    '<span class="linea"></span>' +
     puestos + '</div>';
 
   return '<section class="tarjeta" style="margin-top:0"><h2>Este equipo</h2>' +
@@ -1285,6 +1305,14 @@ function vistaEquipo(){
     '<section class="tarjeta"><h2>Puestos a cubrir</h2>' +
       bloquePuestos + (soloLectura ? "" :
       '<button class="btn" id="btn-sumar-puesto" style="margin-top:11px">+ Sumar puesto</button>') +
+      (ayudaTurno ?
+        '<div class="explica"><b>Otro turno</b> marca un puesto que ocurre en un ' +
+        'momento distinto del mismo día. En megafonía es el turno tarde: quien ya ' +
+        'sirvió a la mañana y aparece también ahí no está en dos lugares a la vez, ' +
+        'está haciendo dos turnos.<br><br>' +
+        'Con esto marcado, el generador puede evitar que la misma persona haga los ' +
+        'dos, si tenés activada la regla de abajo. Si tus puestos son todos del mismo ' +
+        'momento, dejalo sin marcar.</div>' : "") +
       '<p style="color:var(--suave);font-size:13px;margin:14px 0 0;max-width:66ch">' +
       'El nombre y el color son los que se ven en el planning y en la planilla del grupo. ' +
       '«Lleva» es cuánta gente va en ese puesto cada fecha.</p></section>' +
@@ -1730,6 +1758,7 @@ document.addEventListener("click", ev => {
     window.open("https://wa.me/" + tel + "?text=" + encodeURIComponent(texto), "_blank", "noopener");
     return;
   }
+  if(t.id === "btn-ayuda-turno"){ ayudaTurno = !ayudaTurno; render(); return; }
   if(t.id === "btn-borrar-equipo"){
     if(E.equipos.length === 1) return brindis("Tiene que quedar al menos un equipo.");
     if(!confirmado("equipo"))

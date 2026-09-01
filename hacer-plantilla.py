@@ -119,9 +119,10 @@ def main():
           f"sin plannings.")
     print(f"  verificado: ninguno de los {len(reales)} nombres reales aparece en el archivo.")
 
-    io.open(LOCAL, "w", encoding="utf-8").write(envolver(fuente))
-    print(f"{LOCAL.name} generado — con tu equipo real, excluido de git.")
-    print("  este es el que se abre con doble clic desde el Escritorio.")
+    # megafonia-local.html ya no se regenera: era una copia con datos propios que
+    # no se sincronizaba con el enlace, y tener dos plannings distintos sin
+    # saberlo causó más problemas que los que resolvía. Ahora es un cartel que
+    # lleva al enlace, y el ícono del Escritorio apunta directo ahí.
 
 
 if __name__ == "__main__":
