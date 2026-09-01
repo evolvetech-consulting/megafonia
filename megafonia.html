@@ -1089,7 +1089,7 @@ function vistaCompartir(){
 
 /* ═══ Imagen de la planilla ═════════════════════════════════════════ */
 
-const IMG = {ancho:1580, filaAlto:86, cabeceraAlto:80, titulo:96, margen:34,
+const IMG = {ancho:1580, filaAlto:78, cabeceraAlto:84, titulo:96, margen:34,
              colFecha:250, logo:46, radio:16};
 
 // Dos versiones de la misma planilla. La oscura es la que se ve en pantalla;
@@ -1166,7 +1166,7 @@ function dibujarPlanilla(){
   const medio = y0 + IMG.cabeceraAlto/2;
 
   c.fillStyle = P.sobreAcento; c.textBaseline = "middle"; c.textAlign = "left";
-  c.font = fuente(600, 25, "Archivo");
+  c.font = fuente(600, 24, "Archivo");
   const mesEsquina = MESES[mes].charAt(0).toUpperCase() + MESES[mes].slice(1) + " " + anio;
   c.fillText(mesEsquina, x0 + 22, medio);
 
@@ -1194,27 +1194,27 @@ function dibujarPlanilla(){
     c.fillRect(x0, y, anchoTabla, IMG.filaAlto);
 
     c.textAlign = "left"; c.fillStyle = P.tinta;
-    c.font = fuente(600, 26, "Archivo");
+    c.font = fuente(600, 24, "Archivo");
     c.fillText(DIAS_SEM[f.dow] + " " + f.dia, x0 + 22, y + IMG.filaAlto/2);
 
-    c.textAlign = "center"; c.font = fuente(400, 28, '"IBM Plex Sans"');
+    c.textAlign = "center"; c.font = fuente(400, 24, '"IBM Plex Sans"');
     PUESTOS.forEach((p, j) => {
       const q = f.puestos[p.id].filter(Boolean).map(nombreDe);
       const cx = x0 + IMG.colFecha + anchoCol*j + anchoCol/2;
       c.fillStyle = q.length ? P.tinta : P.suave;
       const txt = q.length ? q.join(" · ") : "—";
       if(q.length === 2 && c.measureText(txt).width > anchoCol - 26){
+        c.font = fuente(400, 21, '"IBM Plex Sans"');
+        c.fillText(q[0], cx, y + IMG.filaAlto/2 - 13);
+        c.fillText(q[1], cx, y + IMG.filaAlto/2 + 13);
         c.font = fuente(400, 24, '"IBM Plex Sans"');
-        c.fillText(q[0], cx, y + IMG.filaAlto/2 - 15);
-        c.fillText(q[1], cx, y + IMG.filaAlto/2 + 15);
-        c.font = fuente(400, 28, '"IBM Plex Sans"');
       }else{
-        let f2 = 28;
-        while(f2 > 17 && c.measureText(txt).width > anchoCol - 26){
+        let f2 = 24;
+        while(f2 > 15 && c.measureText(txt).width > anchoCol - 26){
           f2 -= 1; c.font = fuente(400, f2, '"IBM Plex Sans"');
         }
         c.fillText(txt, cx, y + IMG.filaAlto/2);
-        c.font = fuente(400, 28, '"IBM Plex Sans"');
+        c.font = fuente(400, 24, '"IBM Plex Sans"');
       }
     });
   });
