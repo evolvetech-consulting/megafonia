@@ -138,7 +138,7 @@ label.btn{display:inline-block; line-height:1.5}
 .pestanas button:hover{color:var(--tinta)}
 .pestanas button[aria-selected="true"]{color:var(--acento); border-bottom-color:var(--acento)}
 
-main{max-width:100%; width:1180px; margin:0 auto; padding:24px 20px 96px}
+main{max-width:100%; width:1180px; margin:0 auto; padding:24px 20px 260px}
 .vista[hidden]{display:none}
 
 /* ── Tarjetas de fecha ────────────────────────────────── */
@@ -450,7 +450,7 @@ select.asig.chocado{
   .marca{width:100%; margin-right:0}
   .mes-nav{flex:1}
   .mes-nav .etiqueta{flex:1}
-  main{padding:18px 16px 90px}
+  main{padding:18px 16px 280px}
   .pestanas{padding:0 16px}
   .pestanas button{margin-right:14px}
   .persona{grid-template-columns:1fr auto}
@@ -938,9 +938,10 @@ function textoCambios(){
   const clave = claveMes(anio, mes);
   const antes = AC.enviados && AC.enviados[clave];
   if(!antes)
-    return "Todavía no mandaste el planning de este mes.\n\n" +
-           "Copiá o compartí primero «Planning del mes»: eso queda como referencia, " +
-           "y de ahí en más acá vas a ver solo lo que cambie.";
+    return "Todavía no marcaste el planning de este mes como mandado.\n\n" +
+           "Se marca solo cuando copiás la imagen o el texto desde acá. Si ya lo mandaste " +
+           "por afuera, andá a «Planning del mes» y copiá la imagen: eso queda como punto " +
+           "de partida, y de ahí en más vas a ver solo lo que cambie.";
 
   const plan = planningDe(anio, mes);
   const lineas = [];
@@ -1345,7 +1346,8 @@ function vistaCompartir(){
           '<button data-paleta="clara" aria-selected="' + (paletaImagen==="clara") + '">Clara</button>' +
         '</span>' +
         '<span style="color:var(--suave);font-size:13px">Copiala y pegala en el grupo, ' +
-          'como la planilla de siempre.</span>' +
+          'como la planilla de siempre. Al copiarla queda como referencia para los ' +
+          'avisos de cambios.</span>' +
       '</div></section>' : "") +
     '<section class="tarjeta"' + (tabla ? "" : ' style="margin-top:0"') + '><h2>Mensaje</h2>' +
     '<div class="selector-msj">' +
@@ -1541,6 +1543,8 @@ async function copiarImagen(){
     // Safari exige la promesa, no el blob ya resuelto: sirve para los dos.
     await navigator.clipboard.write([new ClipboardItem({"image/png": imagenDelMes()})]);
     listo();
+    // Mandar la foto es la forma habitual: cuenta igual que copiar el texto.
+    if(!soloLectura){ marcarComoEnviado(); marcarSucio(); render(); }
     brindis("Imagen copiada: pegala en el grupo");
   }catch(err){
     listo();
@@ -1561,6 +1565,7 @@ async function descargarImagen(){
     if(modoLocal) bajarArchivo(blob, nombre);
     else await dl.save({filename:nombre, data:blob});
     restaurar();
+    if(!soloLectura){ marcarComoEnviado(); marcarSucio(); render(); }
     brindis("Imagen guardada");
   }catch(err){
     restaurar();
