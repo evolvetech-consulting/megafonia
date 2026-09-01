@@ -760,6 +760,8 @@ function render(){
       '<div class="acciones">' +
         '<span class="estado-guardado' + (sucio ? " sucio" : "") + '">' +
           (soloLectura ? "solo lectura" : sucio ? "sin guardar" : "guardado") + '</span>' +
+        '<button class="icono" id="btn-refrescar" title="Recargar para traer la última versión" ' +
+          'aria-label="Recargar">⟳</button>' +
         (soloLectura ? "" :
           '<button class="icono" id="btn-deshacer" title="Deshacer"' +
             (pilaUndo.length ? "" : " disabled") + ' aria-label="Deshacer">↶</button>' +
@@ -1395,6 +1397,15 @@ document.addEventListener("click", ev => {
     const d = new Date(Date.UTC(anio, mes + Number(t.dataset.salto), 1));
     E.mesActual = claveMes(d.getUTCFullYear(), d.getUTCMonth());
     render(); return;
+  }
+  if(t.id === "btn-refrescar"){
+    if(sucio && !soloLectura &&
+       !confirm("Tenés cambios sin guardar y recargar los descarta.\n\n" +
+                "Cancelá, tocá Guardar y volvé a recargar si querés conservarlos."))
+      return;
+    publicando = true;              // que no salte además el aviso del navegador
+    location.reload();
+    return;
   }
   if(t.id === "btn-deshacer") return deshacer();
   if(t.id === "btn-rehacer") return rehacer();
