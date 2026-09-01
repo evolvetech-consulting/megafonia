@@ -1,0 +1,1265 @@
+<title>Consola de Megafonía</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style id="css">
+:root{
+  --papel:#EEF2F5; --panel:#FFFFFF; --panel2:#F6FAFB; --linea:#D2DDE4;
+  --tinta:#16222D; --suave:#5D7383; --tenue:#8698A5;
+  --acento:#0B6E8A; --acento-tinta:#FFFFFF; --acento-suave:#E0EFF3;
+  --ok:#1B7357; --alerta:#B65418;
+  --p-camara:#6F4FA3; --p-audio:#B65418; --p-produccion:#1B7357;
+  --p-streaming:#A93A55; --p-tarde:#2F6BA5;
+  --sombra:0 1px 2px rgba(22,34,45,.06), 0 8px 24px -16px rgba(22,34,45,.28);
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --papel:#0F1920; --panel:#18242E; --panel2:#1D2B36; --linea:#2B3D4A;
+    --tinta:#E7EFF4; --suave:#93A9B7; --tenue:#6F8493;
+    --acento:#4CB7D4; --acento-tinta:#08222B; --acento-suave:#123641;
+    --ok:#4FBE96; --alerta:#E28B4A;
+    --p-camara:#AC8EDB; --p-audio:#E5904F; --p-produccion:#52C29A;
+    --p-streaming:#E37E95; --p-tarde:#73A8DE;
+    --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --papel:#0F1920; --panel:#18242E; --panel2:#1D2B36; --linea:#2B3D4A;
+  --tinta:#E7EFF4; --suave:#93A9B7; --tenue:#6F8493;
+  --acento:#4CB7D4; --acento-tinta:#08222B; --acento-suave:#123641;
+  --ok:#4FBE96; --alerta:#E28B4A;
+  --p-camara:#AC8EDB; --p-audio:#E5904F; --p-produccion:#52C29A;
+  --p-streaming:#E37E95; --p-tarde:#73A8DE;
+  --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--papel); color:var(--tinta);
+  font:400 15px/1.5 "IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:Archivo,"Helvetica Neue",Arial,sans-serif; margin:0; text-wrap:balance}
+button,input,select,textarea{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--acento); outline-offset:2px; border-radius:4px}
+
+/* ── Cabecera ─────────────────────────────────────────── */
+.tope{
+  position:sticky; top:0; z-index:20; background:var(--panel);
+  border-bottom:1px solid var(--linea);
+}
+.tope-fila{
+  max-width:1180px; margin:0 auto; padding:14px 20px;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.marca{display:flex; align-items:center; gap:10px; margin-right:auto}
+.marca h1{font-size:17px; font-weight:700; letter-spacing:-.01em}
+.marca .sub{
+  font:500 10px/1 "IBM Plex Mono",monospace; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--tenue); margin-top:3px;
+}
+.marca .logo{display:block; width:30px; height:30px; flex:none}
+.marca .logo svg{display:block; width:100%; height:100%}
+
+.mes-nav{display:flex; align-items:center; gap:2px; background:var(--panel2);
+  border:1px solid var(--linea); border-radius:var(--r); padding:3px}
+.mes-nav button{
+  background:none; border:0; cursor:pointer; color:var(--suave);
+  padding:5px 9px; border-radius:7px; line-height:1; font-size:15px;
+}
+.mes-nav button:hover{background:var(--panel); color:var(--tinta)}
+.mes-nav .etiqueta{
+  font:600 13px/1 "IBM Plex Mono",monospace; padding:0 8px;
+  min-width:112px; text-align:center; text-transform:capitalize;
+}
+
+.acciones{display:flex; gap:8px; align-items:center}
+.btn{
+  background:var(--panel2); border:1px solid var(--linea); color:var(--tinta);
+  padding:8px 14px; border-radius:var(--r); cursor:pointer; font-weight:500;
+  font-size:14px; white-space:nowrap; transition:background .12s,border-color .12s;
+}
+.btn:hover{background:var(--panel); border-color:var(--tenue)}
+.btn.primario{background:var(--acento); border-color:var(--acento); color:var(--acento-tinta)}
+.btn.primario:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+label.btn{display:inline-block; line-height:1.5}
+.btn.primario:disabled:hover{filter:none}
+
+.estado-guardado{
+  font:500 11px/1 "IBM Plex Mono",monospace; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--tenue); display:flex; align-items:center; gap:6px;
+}
+.estado-guardado::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--ok)}
+.estado-guardado.sucio{color:var(--alerta)}
+.estado-guardado.sucio::before{background:var(--alerta)}
+
+/* ── Pestañas ─────────────────────────────────────────── */
+.pestanas{max-width:1180px; margin:0 auto; padding:0 20px; display:flex; gap:4px}
+.pestanas button{
+  background:none; border:0; border-bottom:2px solid transparent; cursor:pointer;
+  padding:11px 4px; margin-right:20px; color:var(--suave); font-weight:500;
+  font-size:14px; transition:color .12s;
+}
+.pestanas button:hover{color:var(--tinta)}
+.pestanas button[aria-selected="true"]{color:var(--acento); border-bottom-color:var(--acento)}
+
+main{max-width:1180px; margin:0 auto; padding:24px 20px 96px}
+.vista[hidden]{display:none}
+
+/* ── Tarjetas de fecha ────────────────────────────────── */
+.rejilla{display:grid; gap:14px; grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
+.fecha{
+  background:var(--panel); border:1px solid var(--linea);
+  border-radius:var(--r); box-shadow:var(--sombra); overflow:hidden;
+}
+.fecha-tope{
+  display:flex; align-items:baseline; gap:8px; padding:12px 16px;
+  border-bottom:1px solid var(--linea); background:var(--panel2);
+}
+.fecha-tope .dia{font-family:Archivo; font-weight:600; font-size:15px}
+.fecha-tope .num{
+  font:600 20px/1 "IBM Plex Mono",monospace; color:var(--acento);
+  font-variant-numeric:tabular-nums; margin-left:auto;
+}
+.puesto{
+  display:grid; grid-template-columns:104px 1fr; align-items:center;
+  gap:10px; padding:7px 16px; border-bottom:1px solid var(--linea);
+}
+.puesto:last-child{border-bottom:0}
+.puesto-nom{
+  display:flex; align-items:center; gap:7px;
+  font:500 10px/1 "IBM Plex Mono",monospace; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--suave);
+}
+.punto{width:7px; height:7px; border-radius:2px; flex:none}
+.slots{display:flex; flex-direction:column; gap:5px; min-width:0}
+select.asig{
+  width:100%; background:transparent; border:1px solid transparent;
+  border-radius:7px; padding:5px 7px; cursor:pointer; font-size:14px;
+  appearance:none; text-overflow:ellipsis;
+  background-image:linear-gradient(45deg,transparent 50%,var(--tenue) 50%),
+                   linear-gradient(135deg,var(--tenue) 50%,transparent 50%);
+  background-position:calc(100% - 12px) 52%, calc(100% - 8px) 52%;
+  background-size:4px 4px, 4px 4px; background-repeat:no-repeat; padding-right:26px;
+}
+select.asig:hover{border-color:var(--linea); background-color:var(--panel2)}
+select.asig.vacio{color:var(--tenue); font-style:italic}
+select.asig option{background:var(--panel); color:var(--tinta); font-style:normal}
+
+/* ── Reparto ──────────────────────────────────────────── */
+.tarjeta{
+  background:var(--panel); border:1px solid var(--linea); border-radius:var(--r);
+  box-shadow:var(--sombra); padding:18px 20px; margin-top:22px;
+}
+.tarjeta h2{
+  font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--suave); margin-bottom:14px;
+}
+.reparto{display:grid; gap:7px; grid-template-columns:repeat(auto-fill,minmax(255px,1fr))}
+.reparto-fila{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px}
+.reparto-fila .quien{font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.barra{display:flex; align-items:center; gap:2px}
+.barra i{width:9px; height:9px; border-radius:2px; background:var(--acento)}
+.barra b{
+  font:500 12px/1 "IBM Plex Mono",monospace; color:var(--tenue);
+  margin-left:5px; font-variant-numeric:tabular-nums;
+}
+
+/* ── Equipo ───────────────────────────────────────────── */
+.persona{
+  background:var(--panel); border:1px solid var(--linea); border-radius:var(--r);
+  padding:13px 16px; margin-bottom:9px; display:grid; gap:11px;
+  grid-template-columns:minmax(150px,1.1fr) auto auto; align-items:center;
+}
+.persona.baja{opacity:.5}
+.persona input.nombre{
+  background:transparent; border:1px solid transparent; border-radius:7px;
+  padding:6px 8px; font-weight:500; width:100%; min-width:0;
+}
+.persona input.nombre:hover{border-color:var(--linea); background:var(--panel2)}
+.chips{display:flex; gap:5px; flex-wrap:wrap}
+.chip{
+  border:1px solid var(--linea); background:var(--panel2); color:var(--tenue);
+  border-radius:20px; padding:4px 11px; cursor:pointer;
+  font:500 11px/1.35 "IBM Plex Mono",monospace; letter-spacing:.05em;
+  text-transform:uppercase; transition:all .12s; white-space:nowrap;
+}
+.chip[aria-pressed="true"]{
+  color:var(--papel); border-color:transparent; background:var(--c,var(--acento));
+}
+.persona-acc{display:flex; gap:4px}
+.icono{
+  background:none; border:1px solid transparent; border-radius:7px; cursor:pointer;
+  padding:6px 9px; color:var(--tenue); font-size:13px; line-height:1;
+}
+.icono:hover{background:var(--panel2); border-color:var(--linea); color:var(--tinta)}
+.icono.peligro:hover{color:var(--p-streaming); border-color:var(--p-streaming)}
+
+/* ── Mensajes ─────────────────────────────────────────── */
+.selector-msj{display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap}
+.selector-msj button{
+  background:var(--panel); border:1px solid var(--linea); color:var(--suave);
+  padding:8px 15px; border-radius:20px; cursor:pointer; font-size:13.5px; font-weight:500;
+}
+.selector-msj button[aria-selected="true"]{
+  background:var(--acento-suave); border-color:var(--acento); color:var(--acento);
+}
+textarea.msj{
+  width:100%; min-height:340px; background:var(--panel);
+  border:1px solid var(--linea); border-radius:var(--r); padding:18px 20px;
+  font:400 14px/1.65 "IBM Plex Mono",monospace; resize:vertical;
+  box-shadow:var(--sombra);
+}
+
+/* ── Planilla del mes ─────────────────────────────────── */
+.planilla-marco{overflow-x:auto; border:1px solid var(--linea); border-radius:var(--r)}
+table.planilla{border-collapse:collapse; width:100%; min-width:660px; font-size:14px}
+table.planilla th, table.planilla td{
+  border-right:1px solid var(--linea); border-bottom:1px solid var(--linea);
+  padding:11px 14px; text-align:center;
+}
+table.planilla th:last-child, table.planilla td:last-child{border-right:0}
+table.planilla tbody tr:last-child th, table.planilla tbody tr:last-child td{border-bottom:0}
+table.planilla thead th{
+  background:var(--acento); color:var(--acento-tinta); font-family:Archivo;
+  font-weight:600; font-size:12px; letter-spacing:.07em; text-transform:uppercase;
+  white-space:nowrap; border-right-color:rgba(255,255,255,.22); border-bottom:0;
+}
+table.planilla thead th .punto{display:inline-block; margin-right:7px; vertical-align:middle;
+  box-shadow:0 0 0 1.5px rgba(255,255,255,.55)}
+table.planilla th.esquina{background:var(--acento); text-align:left; text-transform:capitalize;
+  font-size:13px; letter-spacing:.02em}
+table.planilla th.fila-fecha{
+  background:var(--panel2); text-align:left; white-space:nowrap; font-family:Archivo;
+  font-weight:600; font-size:14px;
+}
+table.planilla tbody tr:nth-child(even) td{background:var(--panel2)}
+table.planilla td.hueco{color:var(--tenue)}
+
+/* ── Ajustes ──────────────────────────────────────────── */
+.ajustes{display:flex; gap:22px; flex-wrap:wrap; align-items:center}
+.grupo-dias{display:flex; gap:5px; flex-wrap:wrap}
+label.switch{display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--suave)}
+label.switch input{accent-color:var(--acento); width:16px; height:16px; cursor:pointer}
+
+.aviso{
+  display:flex; gap:11px; align-items:flex-start; padding:13px 16px;
+  border:1px solid var(--linea); border-left:3px solid var(--alerta);
+  border-radius:var(--r); background:var(--panel); margin-bottom:20px; font-size:14px;
+}
+.aviso b{font-weight:600}
+.aviso.doble{border-left-color:var(--p-streaming)}
+ul.choques{margin:7px 0 9px; padding-left:19px}
+ul.choques li{margin-bottom:3px}
+select.asig.chocado{
+  border-color:var(--p-streaming);
+  background-color:color-mix(in srgb, var(--p-streaming) 9%, transparent);
+}
+.vacio{text-align:center; padding:56px 20px; color:var(--tenue)}
+.pie{
+  max-width:1180px; margin:0 auto; padding:28px 20px 44px;
+  color:var(--tenue); font-size:13px; border-top:1px solid var(--linea);
+}
+.brindis{
+  position:fixed; left:50%; bottom:26px; transform:translate(-50%,14px);
+  background:var(--tinta); color:var(--papel); padding:11px 20px;
+  border-radius:22px; font-size:14px; font-weight:500; opacity:0;
+  pointer-events:none; transition:opacity .2s,transform .2s; z-index:60;
+  box-shadow:0 8px 30px -10px rgba(0,0,0,.5);
+}
+.brindis.visible{opacity:1; transform:translate(-50%,0)}
+
+@media (max-width:640px){
+  .tope-fila{padding:12px 16px; gap:12px}
+  .marca{width:100%; margin-right:0}
+  .mes-nav{flex:1}
+  .mes-nav .etiqueta{flex:1}
+  main{padding:18px 16px 90px}
+  .pestanas{padding:0 16px}
+  .pestanas button{margin-right:14px}
+  .persona{grid-template-columns:1fr auto}
+  .persona .chips{grid-column:1/-1}
+  .rejilla{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<script type="application/json" id="estado">
+{
+  "equipo": [
+    {
+      "id": "ana",
+      "nombre": "Ana Ejemplo",
+      "puestos": [
+        "camara",
+        "audio",
+        "produccion",
+        "streaming",
+        "tarde"
+      ],
+      "activo": true
+    },
+    {
+      "id": "bruno",
+      "nombre": "Bruno Ejemplo",
+      "puestos": [
+        "camara",
+        "produccion",
+        "streaming",
+        "tarde"
+      ],
+      "activo": true
+    },
+    {
+      "id": "carla",
+      "nombre": "Carla Ejemplo",
+      "puestos": [
+        "audio"
+      ],
+      "activo": true
+    },
+    {
+      "id": "diego",
+      "nombre": "Diego Ejemplo",
+      "puestos": [
+        "produccion",
+        "streaming"
+      ],
+      "activo": true
+    },
+    {
+      "id": "elena",
+      "nombre": "Elena Ejemplo",
+      "puestos": [
+        "camara",
+        "audio",
+        "produccion",
+        "streaming",
+        "tarde"
+      ],
+      "activo": true
+    },
+    {
+      "id": "fabian",
+      "nombre": "Fabián Ejemplo",
+      "puestos": [
+        "produccion",
+        "streaming",
+        "tarde"
+      ],
+      "activo": true
+    },
+    {
+      "id": "gabi",
+      "nombre": "Gabi Ejemplo",
+      "puestos": [
+        "camara",
+        "audio",
+        "tarde"
+      ],
+      "activo": true
+    }
+  ],
+  "config": {
+    "dias": [
+      6
+    ],
+    "tardeExclusiva": true
+  },
+  "plannings": {},
+  "mesActual": null
+}
+</script>
+
+<script id="app">
+"use strict";
+
+/* ═══ Datos base ═══════════════════════════════════════════════════ */
+
+const PUESTOS = [
+  {id:"camara",     label:"Cámara",     emoji:"🎥", cupo:1},
+  {id:"audio",      label:"Audio",      emoji:"🎙️", cupo:1},
+  {id:"produccion", label:"Producción", emoji:"🎛️", cupo:1},
+  {id:"streaming",  label:"Streaming",  emoji:"📡", cupo:1},
+  {id:"tarde",      label:"Tarde",      emoji:"🌇", cupo:2}
+];
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
+               "agosto","septiembre","octubre","noviembre","diciembre"];
+const DIAS_SEM = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const DIAS_CORTOS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+
+// Símbolo adventista (Wikimedia Commons, dominio público), en el naranja del logo
+// que usa la iglesia. Un solo trazo: sirve para la cabecera y para la imagen del mes.
+const NARANJA = "#FDA72C";
+const LOGO_D = "m 128.7,161.7 c -11.5,-1.9 -17.7,3.5 -19.6,8.6 -0.2,0.5 -0.7,0.4 -0.7,0 v -1.6 c 0,-5.7 5.1,-10.9 11.1,-17 l 10,-10 26.6,4.6 c 0,0 7.6,7.6 14.1,14.1 12.5,-14.8 20.1,-34 20.1,-54.9 0,-46.9 -38,-84.9 -84.9,-84.9 -46.9,0 -84.9,38 -84.9,84.9 0,20.9 7.6,40.1 20.1,54.9 6.5,-6.5 14.1,-14.1 14.1,-14.1 l 30.2,-5.2 c 14,-2.4 17.5,0.7 17.5,5.4 0,0.2 -0.2,0.4 -0.4,0.4 h -8.5 c -0.2,0 -0.2,0.2 -0.2,0.4 v 5.2 c 0,0.2 -0.2,0.2 0,0.2 h 8.7 c 0.2,0 0.4,0.2 0.4,0.4 0,0 0,16.9 0,17.3 0,0.4 -0.5,0.5 -0.7,0.1 -1.9,-5.1 -8.1,-10.5 -19.6,-8.6 0,0 -19.9,3.4 -34.7,6 15.2,14.1 35.5,22.8 57.9,22.8 22.4,0 42.7,-8.6 57.9,-22.8 -14.6,-2.8 -34.5,-6.2 -34.5,-6.2 z m -19.5,0.2 c -0.1,0.5 -0.7,0.5 -0.7,0 V 153 c 0,-0.2 0.1,-0.4 0.3,-0.4 h 4.4 c -1.9,2.7 -3.2,5.3 -4,9.3 z m 31.5,-55.5 c 2.1,6.9 0.7,17.4 -9.2,27.4 l -12,11.8 c -0.3,0.3 -0.7,0.8 -1,0.8 h -8.2 c 2,-3 5.4,-6.8 9.2,-10.6 l 8.3,-8.3 C 138.3,117 140,112 140,106.2 c 0.1,-0.4 0.6,-0.4 0.7,0.2 z m -16.3,-6.5 c 6.8,-6.8 8.5,-14.7 3,-19.4 -0.5,-0.4 -0.2,-0.9 0.4,-0.6 6.8,3.1 12.1,14.3 0.5,25.9 l -8.8,8.8 c -6,6 -8.8,8.8 -10.3,16.1 -0.1,0.5 -0.7,0.5 -0.7,0 v -8.9 c 0,-5.7 5,-10.9 11.1,-17 z m -54.1,8 C 68.2,101 69.6,90.5 79.5,80.5 l 26.4,-26.4 c 6,-6 9.1,-8.9 10.6,-16.1 0.1,-0.5 1,-0.5 1,0 v 8.9 c 0,5.7 -5.3,10.9 -11.4,17 L 83.3,86.6 C 72.7,97.2 71,102.1 71,107.9 c 0,0.6 -0.5,0.6 -0.7,0 z m 4,15.7 c -5.9,-7.2 -3.9,-18.4 7.7,-30 l 23.9,-23.9 c 6,-6 9.1,-8.9 10.6,-16.2 0.1,-0.5 1,-0.5 1,0 v 9 c 0,5.7 -5.3,10.9 -11.4,17 l -21.2,21.1 c -4.4,4.4 -13.9,13.8 -10,22.6 0.3,0.6 -0.2,0.9 -0.6,0.4 z m 12.3,-9.2 c -6.8,6.8 -8.5,14.7 -3,19.4 0.5,0.4 0.2,0.9 -0.4,0.6 -6.8,-3.1 -12.1,-14.3 -0.5,-25.9 l 23.2,-23.2 c 6,-6 9.1,-8.8 10.6,-16.1 0.1,-0.5 1,-0.5 1,0 v 8.9 c 0,5.7 -5.3,10.9 -11.4,17 z m 21.9,23 c 0,-5.7 5,-10.9 11.1,-17 l 6.7,-6.7 c 4.4,-4.4 13.8,-13.8 9.9,-22.6 -0.3,-0.6 0.2,-0.9 0.6,-0.4 5.9,7.2 3.9,18.4 -7.7,30 l -9.5,9.5 c -6,6 -8.8,8.9 -10.3,16.2 -0.1,0.5 -0.7,0.5 -0.7,0 v -9 z";
+const logoSVG = color =>
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 169.8 170.1" role="img" ' +
+  'aria-label="Iglesia Adventista del Séptimo Día">' +
+  '<path fill="' + color + '" transform="translate(-20.5,-20.6)" d="' + LOGO_D + '"/></svg>';
+
+const E = JSON.parse(document.getElementById("estado").textContent);
+// El CSS y este mismo script son el molde con el que la página se reconstruye al guardar.
+// Hay que leerlos ahora: el primer render los saca de vista.
+const FUENTE_CSS = document.getElementById("css").textContent;
+const FUENTE_JS  = document.getElementById("app").textContent;
+const RAIZ = document.createElement("div");
+document.body.appendChild(RAIZ);
+let sucio = false, vista = "planning", tipoMsj = "planning", soloLectura = false,
+    capArtifact = null, modoLocal = false;
+const LLAVE_LOCAL = "megafonia:estado";
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const claveMes = (a,m) => a + "-" + String(m+1).padStart(2,"0");
+const persona  = id => E.equipo.find(p => p.id === id) || null;
+const nombreDe = id => (persona(id) || {}).nombre || "";
+
+function mesVigente(){
+  const h = new Date(), hoy = claveMes(h.getFullYear(), h.getMonth());
+  if(!E.mesActual || E.mesActual < hoy) E.mesActual = hoy;
+  const [a,m] = E.mesActual.split("-").map(Number);
+  return {anio:a, mes:m-1};
+}
+function fechasDelMes(anio, mes){
+  const total = new Date(Date.UTC(anio, mes+1, 0)).getUTCDate(), out = [];
+  for(let d=1; d<=total; d++){
+    const dow = new Date(Date.UTC(anio, mes, d)).getUTCDay();
+    if(E.config.dias.includes(dow)) out.push({dia:d, dow:dow});
+  }
+  return out;
+}
+function planningDe(anio, mes){
+  const clave = claveMes(anio, mes);
+  const fechas = fechasDelMes(anio, mes);
+  let plan = E.plannings[clave];
+  if(!plan) plan = E.plannings[clave] = {fechas:[]};
+  // Sincroniza con el calendario: conserva lo asignado, suma o quita fechas.
+  const previas = new Map(plan.fechas.map(f => [f.dia, f]));
+  plan.fechas = fechas.map(f => {
+    const vieja = previas.get(f.dia) || {dia:f.dia, puestos:{}};
+    PUESTOS.forEach(p => {
+      const actual = vieja.puestos[p.id] || [];
+      vieja.puestos[p.id] = Array.from({length:p.cupo}, (_,i) => actual[i] || null);
+    });
+    vieja.dow = f.dow;
+    return vieja;
+  });
+  return plan;
+}
+
+/* ═══ Generador ════════════════════════════════════════════════════ */
+
+function rng(semilla){
+  let a = semilla + 0x6D2B79F5;
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function historialPrevio(claveActual){
+  const conteo = {};
+  Object.keys(E.plannings).forEach(clave => {
+    if(clave === claveActual) return;
+    E.plannings[clave].fechas.forEach(f =>
+      Object.values(f.puestos).forEach(slots =>
+        slots.forEach(id => { if(id) conteo[id] = (conteo[id]||0) + 1; })));
+  });
+  return conteo;
+}
+function intento(fechas, gente, historial, azar){
+  const vecesMes = {}, vecesPuesto = {}, ultima = {};
+  gente.forEach(p => { vecesMes[p.id] = 0; vecesPuesto[p.id] = {}; });
+  let huecos = 0;
+  const plan = fechas.map((f, idx) => {
+    const enManana = new Set(), enTarde = new Set(), puestos = {};
+    PUESTOS.forEach(pu => {
+      puestos[pu.id] = Array.from({length:pu.cupo}, () => {
+        const esTarde = pu.id === "tarde";
+        const vetados = (esTarde && !E.config.tardeExclusiva)
+          ? enTarde : new Set([...enManana, ...enTarde]);
+        const candidatos = gente.filter(p => p.puestos.includes(pu.id) && !vetados.has(p.id));
+        if(!candidatos.length){ huecos++; return null; }
+        let mejor = null, mejorCosto = Infinity;
+        for(const p of candidatos){
+          // Repetir el mismo puesto pesa más que servir una vez más: si no,
+          // quien solo hace un puesto se lo queda todo el mes y nadie más rota.
+          let c = (vecesPuesto[p.id][pu.id]||0) * 40;
+          c += vecesMes[p.id] * 25;                        // reparte dentro del mes
+          c += (historial[p.id]||0) * 8;                   // y a lo largo del año
+          if(ultima[p.id] === idx-1) c += 30;              // evita fechas seguidas
+          c += azar();
+          if(c < mejorCosto){ mejorCosto = c; mejor = p; }
+        }
+        vecesMes[mejor.id]++;
+        vecesPuesto[mejor.id][pu.id] = (vecesPuesto[mejor.id][pu.id]||0) + 1;
+        ultima[mejor.id] = idx;
+        (esTarde ? enTarde : enManana).add(mejor.id);
+        return mejor.id;
+      });
+    });
+    return {dia:f.dia, dow:f.dow, puestos:puestos};
+  });
+  const cargas = Object.values(vecesMes);
+  const desbalance = cargas.length ? Math.max(...cargas) - Math.min(...cargas) : 0;
+  // Cada vez que alguien repite un puesto ya hecho este mes cuenta como monotonía.
+  let repeticiones = 0;
+  Object.values(vecesPuesto).forEach(porPuesto =>
+    Object.values(porPuesto).forEach(v => { if(v > 1) repeticiones += v - 1; }));
+  const costo = huecos*1000 + repeticiones*30 + desbalance*10
+              + cargas.reduce((s,v) => s + v*v, 0);
+  return {plan:plan, huecos:huecos, costo:costo};
+}
+function generar(){
+  const {anio, mes} = mesVigente();
+  const fechas = fechasDelMes(anio, mes);
+  const gente = E.equipo.filter(p => p.activo && p.puestos.length);
+  if(!fechas.length) return brindis("No hay fechas de servicio este mes. Revisá los días en Equipo.");
+  if(!gente.length)  return brindis("No hay nadie activo en el equipo.");
+  const historial = historialPrevio(claveMes(anio, mes));
+  let mejor = null;
+  for(let s=0; s<3000; s++){
+    const r = intento(fechas, gente, historial, rng(s));
+    if(!mejor || r.costo < mejor.costo) mejor = r;
+  }
+  E.plannings[claveMes(anio, mes)] = {fechas:mejor.plan};
+  marcarSucio(); render();
+  brindis(mejor.huecos ? mejor.huecos + " puesto(s) sin cubrir: falta gente habilitada"
+                       : "Planning generado");
+}
+
+/* ═══ Mensajes ═════════════════════════════════════════════════════ */
+
+function textoPlanning(){
+  const {anio, mes} = mesVigente();
+  const plan = planningDe(anio, mes);
+  const out = ["📢 *MEGAFONÍA — " + MESES[mes].toUpperCase() + " " + anio + "*", ""];
+  plan.fechas.forEach(f => {
+    out.push("*" + DIAS_SEM[f.dow] + " " + f.dia + "*");
+    PUESTOS.forEach(p => {
+      const quienes = f.puestos[p.id].filter(Boolean).map(nombreDe);
+      out.push(p.emoji + " " + p.label + ": " + (quienes.length ? quienes.join(" – ") : "_a cubrir_"));
+    });
+    out.push("");
+  });
+  out.push("Cualquier cambio, avisen con tiempo 🙏");
+  return out.join("\n");
+}
+function proximaFecha(){
+  const hoy = new Date();
+  const corte = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  const claves = Object.keys(E.plannings).sort();
+  for(const clave of claves){
+    const [a,m] = clave.split("-").map(Number);
+    for(const f of E.plannings[clave].fechas){
+      if(Date.UTC(a, m-1, f.dia) >= corte) return {f:f, anio:a, mes:m-1};
+    }
+  }
+  return null;
+}
+function textoRecordatorio(){
+  const prox = proximaFecha();
+  if(!prox) return "No hay ningún servicio próximo cargado.\n\nGenerá el planning del mes y volvé acá.";
+  const {f, mes} = prox;
+  const out = ["🔔 *Recordatorio — " + DIAS_SEM[f.dow].toLowerCase() + " " + f.dia + " de " + MESES[mes] + "*", ""];
+  PUESTOS.forEach(p => {
+    const quienes = f.puestos[p.id].filter(Boolean).map(nombreDe);
+    out.push(p.emoji + " " + p.label + ": " + (quienes.length ? quienes.join(" – ") : "_a cubrir_"));
+  });
+  out.push("", "Si alguien no puede, avisá cuanto antes así reacomodamos 🙌");
+  return out.join("\n");
+}
+
+/* ═══ Render ═══════════════════════════════════════════════════════ */
+
+function render(){
+  const {anio, mes} = mesVigente();
+  const plan = planningDe(anio, mes);
+  const activos = E.equipo.filter(p => p.activo);
+
+  const pestana = (id, txt) =>
+    '<button data-vista="' + id + '" role="tab" aria-selected="' + (vista===id) + '">' + txt + '</button>';
+
+  RAIZ.innerHTML =
+  '<header class="tope">' +
+    '<div class="tope-fila">' +
+      '<div class="marca"><span class="logo">' + logoSVG(NARANJA) + '</span>' +
+        '<div><h1>Consola de Megafonía</h1><div class="sub">Planning del equipo</div></div></div>' +
+      '<div class="mes-nav">' +
+        '<button data-salto="-1" aria-label="Mes anterior">‹</button>' +
+        '<span class="etiqueta">' + MESES[mes] + " " + anio + '</span>' +
+        '<button data-salto="1" aria-label="Mes siguiente">›</button>' +
+      '</div>' +
+      '<div class="acciones">' +
+        '<span class="estado-guardado' + (sucio ? " sucio" : "") + '">' +
+          (soloLectura ? "solo lectura" : sucio ? "sin guardar" : "guardado") + '</span>' +
+        (soloLectura ? "" :
+          '<button class="icono" id="btn-deshacer" title="Deshacer"' +
+            (pilaUndo.length ? "" : " disabled") + ' aria-label="Deshacer">↶</button>' +
+          '<button class="icono" id="btn-rehacer" title="Rehacer"' +
+            (pilaRedo.length ? "" : " disabled") + ' aria-label="Rehacer">↷</button>' +
+          '<button class="btn" id="btn-generar">Generar</button>' +
+          '<button class="btn primario" id="btn-guardar"' + (sucio ? "" : " disabled") + '>Guardar</button>') +
+      '</div>' +
+    '</div>' +
+    '<nav class="pestanas" role="tablist">' +
+      pestana("planning","Planning") + pestana("equipo","Equipo") + pestana("mensajes","Compartir") +
+    '</nav>' +
+  '</header>' +
+  '<main>' +
+    '<section class="vista" id="v-planning"' + (vista!=="planning"?" hidden":"") + '>' + vistaPlanning(plan, activos) + '</section>' +
+    '<section class="vista" id="v-equipo"'   + (vista!=="equipo"  ?" hidden":"") + '>' + vistaEquipo() + '</section>' +
+    '<section class="vista" id="v-mensajes"' + (vista!=="mensajes"?" hidden":"") + '>' + vistaCompartir() + '</section>' +
+  '</main>' +
+  '<footer class="pie">' + (modoLocal
+    ? 'Esta es la copia de <b>tu equipo</b>: <b>Guardar</b> escribe en este navegador y no la ve nadie más. ' +
+      'Para pasarle los cambios al resto, exportá los datos en <b>Equipo</b> e importalos en la copia del enlace.'
+    : 'Los cambios se guardan al tocar <b>Guardar</b>: se publica una versión nueva y ' +
+      'todos los que tengan el enlace abierto ven lo mismo.') +
+    ' ↶ deshace lo último (también con Ctrl+Z o ⌘Z), incluso después de guardar.</footer>' +
+  '<div class="brindis" id="brindis"></div>';
+}
+
+// Devuelve, por fecha, quién quedó puesto dos veces. Los desplegables filtran por
+// puesto habilitado pero no por esto, así que a mano se puede armar sin querer.
+function choques(plan){
+  const salida = [];
+  plan.fechas.forEach(f => {
+    const manana = new Map();          // id -> puestos de la mañana que ocupa
+    PUESTOS.forEach(pu => {
+      if(pu.id === "tarde") return;
+      f.puestos[pu.id].forEach(id => {
+        if(!id) return;
+        manana.set(id, (manana.get(id) || []).concat(pu.label));
+      });
+    });
+    manana.forEach((puestos, id) => {
+      if(puestos.length > 1)
+        salida.push({dia:f.dia, dow:f.dow, id:id, motivo:puestos.join(" y ") + " a la vez"});
+    });
+
+    const enTarde = f.puestos.tarde.filter(Boolean);
+    enTarde.forEach((id, i) => {
+      if(enTarde.indexOf(id) !== i)
+        salida.push({dia:f.dia, dow:f.dow, id:id, motivo:"dos veces en el turno tarde"});
+      else if(E.config.tardeExclusiva && manana.has(id))
+        salida.push({dia:f.dia, dow:f.dow, id:id, tarde:true,
+                     motivo:manana.get(id)[0] + " a la mañana y además el turno tarde"});
+    });
+  });
+  return salida;
+}
+
+function vistaPlanning(plan, activos){
+  if(!plan.fechas.length) return '<div class="vacio">Este mes no tiene fechas de servicio.<br>' +
+    'Elegí qué días sirven en la pestaña <b>Equipo</b>.</div>';
+
+  const sinCubrir = plan.fechas.reduce((n,f) =>
+    n + PUESTOS.reduce((k,p) => k + f.puestos[p.id].filter(x => !x).length, 0), 0);
+  const dobles = choques(plan);
+
+  const marcados = new Set(dobles.map(d => d.dia + "|" + d.id));
+  const tarjetas = plan.fechas.map(f =>
+    '<article class="fecha">' +
+      '<div class="fecha-tope"><span class="dia">' + DIAS_SEM[f.dow] + '</span>' +
+        '<span class="num">' + f.dia + '</span></div>' +
+      PUESTOS.map(p =>
+        '<div class="puesto">' +
+          '<span class="puesto-nom"><span class="punto" style="background:var(--p-' + p.id + ')"></span>' +
+            p.label + '</span>' +
+          '<div class="slots">' +
+            f.puestos[p.id].map((asignado, i) =>
+              selectorAsig(f.dia, p, i, asignado, activos,
+                           asignado && marcados.has(f.dia + "|" + asignado))).join("") +
+          '</div>' +
+        '</div>').join("") +
+    '</article>').join("");
+
+  const avisoHuecos = sinCubrir ? '<div class="aviso"><span>⚠️</span><div><b>' + sinCubrir +
+      ' puesto(s) sin cubrir.</b> Asignalos a mano acá abajo, o habilitá a más gente en Equipo.</div></div>' : "";
+
+  const avisoDobles = dobles.length ? '<div class="aviso doble"><span>👥</span><div><b>' +
+      (dobles.length === 1 ? "Una persona repetida" : dobles.length + " personas repetidas") +
+      ' el mismo día.</b><ul class="choques">' +
+      dobles.map(d => '<li><b>' + esc(nombreDe(d.id) || "?") + '</b> — ' +
+        DIAS_SEM[d.dow].toLowerCase() + " " + d.dia + ": " + esc(d.motivo) + '</li>').join("") +
+      '</ul>' + (dobles.some(d => d.tarde)
+        ? 'Tenés activada <b>la regla de tarde exclusiva</b>. Si en tu iglesia es normal que ' +
+          'quien sirve a la mañana se quede a la tarde, apagala en <b>Equipo</b>.'
+        : 'Nadie puede estar en dos puestos a la vez: cambiá uno de los dos.') +
+      '</div></div>' : "";
+
+  return avisoHuecos + avisoDobles +
+    '<div class="rejilla">' + tarjetas + '</div>' + panelReparto(plan);
+}
+
+function selectorAsig(dia, puesto, idx, asignado, activos, chocado){
+  const candidatos = activos.filter(p => p.puestos.includes(puesto.id));
+  const opciones = ['<option value=""' + (asignado ? "" : " selected") + '>— a cubrir —</option>']
+    .concat(candidatos.map(p =>
+      '<option value="' + p.id + '"' + (p.id === asignado ? " selected" : "") + '>' + esc(p.nombre) + '</option>'));
+  // Alguien asignado que después quedó de baja o perdió el puesto: se muestra igual, no se pierde.
+  if(asignado && !candidatos.some(p => p.id === asignado))
+    opciones.push('<option value="' + asignado + '" selected>' + esc(nombreDe(asignado) || "?") + ' (fuera)</option>');
+  return '<select class="asig' + (asignado ? "" : " vacio") + (chocado ? " chocado" : "") +
+    '" data-dia="' + dia +
+    '" data-puesto="' + puesto.id + '" data-idx="' + idx + '"' + (soloLectura ? " disabled" : "") + '>' +
+    opciones.join("") + '</select>';
+}
+
+function panelReparto(plan){
+  const conteo = {};
+  E.equipo.filter(p => p.activo).forEach(p => conteo[p.id] = 0);
+  plan.fechas.forEach(f => Object.values(f.puestos).forEach(slots =>
+    slots.forEach(id => { if(id) conteo[id] = (conteo[id]||0) + 1; })));
+  const filas = Object.keys(conteo)
+    .sort((a,b) => conteo[b] - conteo[a] || nombreDe(a).localeCompare(nombreDe(b)))
+    .map(id => '<div class="reparto-fila"><span class="quien">' + esc(nombreDe(id) || "?") + '</span>' +
+      '<span class="barra">' + "<i></i>".repeat(conteo[id]) + '<b>' + conteo[id] + '</b></span></div>').join("");
+  return '<section class="tarjeta"><h2>Reparto del mes</h2><div class="reparto">' +
+    (filas || '<span class="quien">Todavía no hay nadie asignado.</span>') + '</div></section>';
+}
+
+function vistaEquipo(){
+  const gente = E.equipo.map(p =>
+    '<div class="persona' + (p.activo ? "" : " baja") + '" data-id="' + p.id + '">' +
+      '<input class="nombre" value="' + esc(p.nombre) + '" data-campo="nombre" aria-label="Nombre"' +
+        (soloLectura ? " readonly" : "") + '>' +
+      '<div class="chips">' + PUESTOS.map(pu =>
+        '<button class="chip" data-puesto="' + pu.id + '" style="--c:var(--p-' + pu.id + ')" ' +
+          'aria-pressed="' + p.puestos.includes(pu.id) + '">' + pu.label + '</button>').join("") + '</div>' +
+      '<div class="persona-acc">' +
+        '<button class="icono" data-accion="activo" title="' + (p.activo ? "Dar de baja temporal" : "Reactivar") + '">' +
+          (p.activo ? "◉" : "○") + '</button>' +
+        '<button class="icono peligro" data-accion="borrar" title="Quitar del equipo">✕</button>' +
+      '</div>' +
+    '</div>').join("");
+
+  const dias = DIAS_CORTOS.map((d,i) =>
+    '<button class="chip" data-dia-semana="' + i + '" aria-pressed="' + E.config.dias.includes(i) + '">' + d + '</button>').join("");
+
+  return '<section class="tarjeta" style="margin-top:0"><h2>Días de servicio</h2>' +
+      '<div class="ajustes"><div class="grupo-dias">' + dias + '</div>' +
+      '<label class="switch"><input type="checkbox" id="tarde-excl"' +
+        (E.config.tardeExclusiva ? " checked" : "") + (soloLectura ? " disabled" : "") + '>' +
+        'Quien sirve a la mañana no repite en el turno tarde</label></div></section>' +
+    '<section class="tarjeta"><h2>Equipo · ' + E.equipo.filter(p=>p.activo).length + ' activos</h2>' +
+      gente + (soloLectura ? "" :
+      '<button class="btn" id="btn-sumar" style="margin-top:12px">+ Sumar persona</button>') +
+      '<p style="color:var(--suave);font-size:13px;margin:16px 0 0">' +
+      'Tocá un puesto para habilitarlo o quitarlo. ◉ da de baja sin borrar (vacaciones, viajes) ' +
+      'y ✕ saca a la persona del equipo.</p></section>' +
+    '<section class="tarjeta"><h2>Copia de seguridad</h2>' +
+      '<div class="acciones" style="flex-wrap:wrap">' +
+        '<button class="btn" id="btn-exportar">Exportar datos</button>' +
+        (soloLectura ? "" :
+          '<label class="btn" for="archivo-datos" style="margin:0">Importar datos</label>' +
+          '<input type="file" id="archivo-datos" accept="application/json,.json" hidden>') +
+      '</div>' +
+      '<p style="color:var(--suave);font-size:13px;margin:14px 0 0;max-width:64ch">' +
+      'Baja un archivo con el equipo y todos los plannings. Sirve de respaldo y para ' +
+      'mover los datos entre esta copia y la del enlace: exportás de una, importás en la otra.</p>' +
+    '</section>';
+}
+
+function tablaHTML(){
+  const {anio, mes} = mesVigente();
+  const plan = planningDe(anio, mes);
+  if(!plan.fechas.length) return "";
+  const cabecera = '<tr><th class="esquina">' + MESES[mes] + " " + anio + '</th>' +
+    PUESTOS.map(p => '<th><span class="punto" style="background:var(--p-' + p.id + ')"></span>' +
+      p.label + '</th>').join("") + '</tr>';
+  const cuerpo = plan.fechas.map(f =>
+    '<tr><th class="fila-fecha">' + DIAS_SEM[f.dow] + " " + f.dia + '</th>' +
+    PUESTOS.map(p => {
+      const q = f.puestos[p.id].filter(Boolean).map(nombreDe);
+      return '<td' + (q.length ? "" : ' class="hueco"') + '>' +
+        (q.length ? esc(q.join(" – ")) : "—") + '</td>';
+    }).join("") + '</tr>').join("");
+  return '<div class="planilla-marco"><table class="planilla"><thead>' + cabecera +
+    '</thead><tbody>' + cuerpo + '</tbody></table></div>';
+}
+
+function vistaCompartir(){
+  const texto = tipoMsj === "planning" ? textoPlanning() : textoRecordatorio();
+  const tabla = tipoMsj === "planning" ? tablaHTML() : "";
+  return (tabla ?
+    '<section class="tarjeta" style="margin-top:0"><h2>Planilla del mes</h2>' + tabla +
+      '<div class="acciones" style="margin-top:16px">' +
+        '<button class="btn" id="btn-imagen">Descargar como imagen</button>' +
+        '<span style="color:var(--suave);font-size:13px">Para mandar al grupo como foto, ' +
+          'igual que la planilla de siempre.</span>' +
+      '</div></section>' : "") +
+    '<section class="tarjeta"' + (tabla ? "" : ' style="margin-top:0"') + '><h2>Mensaje</h2>' +
+    '<div class="selector-msj">' +
+      '<button data-msj="planning" aria-selected="' + (tipoMsj==="planning") + '">Planning del mes</button>' +
+      '<button data-msj="recordatorio" aria-selected="' + (tipoMsj==="recordatorio") + '">Recordatorio del próximo servicio</button>' +
+    '</div>' +
+    '<textarea class="msj" id="area-msj" spellcheck="false">' + esc(texto) + '</textarea>' +
+    '<div class="acciones" style="margin-top:14px">' +
+      '<button class="btn primario" id="btn-copiar">Copiar mensaje</button>' +
+      '<button class="btn" id="btn-wa">Abrir en WhatsApp</button>' +
+    '</div>' +
+    '<p style="color:var(--suave);font-size:13px;margin-top:14px;max-width:62ch">' +
+    'Podés retocar el texto acá antes de copiarlo. «Abrir en WhatsApp» te deja elegir el grupo con el ' +
+    'mensaje ya escrito; si el navegador lo bloquea, usá Copiar y pegalo vos.</p></section>';
+}
+
+/* ═══ Imagen de la planilla ═════════════════════════════════════════ */
+
+const IMG = {
+  ancho:1580, filaAlto:78, cabeceraAlto:84, titulo:118, margen:34, colFecha:250, logo:62,
+  tinta:"#16222D", suave:"#5D7383", papel:"#FFFFFF", cebra:"#F3F7F9",
+  linea:"#DCE5EB", acento:"#0B6E8A",
+  puestos:{camara:"#6F4FA3", audio:"#B65418", produccion:"#1B7357",
+           streaming:"#A93A55", tarde:"#2F6BA5"}
+};
+
+let imgLogo = null;
+function cargarLogo(){
+  return new Promise(listo => {
+    if(imgLogo) return listo(imgLogo);
+    const im = new Image();
+    im.onload  = () => { imgLogo = im; listo(im); };
+    im.onerror = () => listo(null);          // sin logo la planilla sale igual, solo sin símbolo
+    im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(logoSVG(NARANJA));
+  });
+}
+
+function dibujarPlanilla(){
+  const {anio, mes} = mesVigente();
+  const plan = planningDe(anio, mes);
+  const filas = plan.fechas;
+  const anchoCol = (IMG.ancho - IMG.margen*2 - IMG.colFecha) / PUESTOS.length;
+  const alto = IMG.titulo + IMG.cabeceraAlto + filas.length*IMG.filaAlto + IMG.margen*2;
+
+  const cv = document.createElement("canvas");
+  const esc2 = 2;
+  cv.width = IMG.ancho*esc2; cv.height = alto*esc2;
+  const c = cv.getContext("2d");
+  c.scale(esc2, esc2);
+  const fuente = (peso, px, familia) => peso + " " + px + 'px ' + familia +
+    ', "Helvetica Neue", Arial, sans-serif';
+
+  c.fillStyle = IMG.papel; c.fillRect(0, 0, IMG.ancho, alto);
+
+  // Título, con el símbolo a la izquierda
+  let x = IMG.margen;
+  if(imgLogo){
+    c.drawImage(imgLogo, x, IMG.margen, IMG.logo, IMG.logo);
+    x += IMG.logo + 20;
+  }
+  const baseTitulo = IMG.margen + IMG.logo/2 + 14;
+  c.textBaseline = "alphabetic"; c.textAlign = "left";
+  c.fillStyle = IMG.tinta; c.font = fuente(700, 40, "Archivo");
+  c.fillText("MEGAFONÍA", x, baseTitulo);
+  const anchoMarca = c.measureText("MEGAFONÍA").width;
+  c.fillStyle = IMG.acento; c.font = fuente(600, 40, "Archivo");
+  c.fillText(MESES[mes].toUpperCase() + " " + anio, x + anchoMarca + 22, baseTitulo);
+
+  const x0 = IMG.margen, y0 = IMG.titulo;
+  const anchoTabla = IMG.ancho - IMG.margen*2;
+
+  // Cabecera
+  c.fillStyle = IMG.acento;
+  c.fillRect(x0, y0, anchoTabla, IMG.cabeceraAlto);
+  c.fillStyle = "#FFFFFF"; c.textBaseline = "middle";
+  c.font = fuente(600, 25, "Archivo");
+  PUESTOS.forEach((p, i) => {
+    const cx = x0 + IMG.colFecha + anchoCol*i + anchoCol/2;
+    c.textAlign = "center";
+    c.fillText(p.label.toUpperCase(), cx, y0 + IMG.cabeceraAlto/2);
+  });
+
+  // Filas
+  filas.forEach((f, i) => {
+    const y = y0 + IMG.cabeceraAlto + i*IMG.filaAlto;
+    c.fillStyle = i % 2 ? IMG.cebra : IMG.papel;
+    c.fillRect(x0, y, anchoTabla, IMG.filaAlto);
+
+    c.textAlign = "left"; c.fillStyle = IMG.tinta;
+    c.font = fuente(600, 24, "Archivo");
+    c.fillText(DIAS_SEM[f.dow] + " " + f.dia, x0 + 22, y + IMG.filaAlto/2);
+
+    c.textAlign = "center"; c.font = fuente(400, 24, '"IBM Plex Sans"');
+    PUESTOS.forEach((p, j) => {
+      const q = f.puestos[p.id].filter(Boolean).map(nombreDe);
+      const cx = x0 + IMG.colFecha + anchoCol*j + anchoCol/2;
+      c.fillStyle = q.length ? IMG.tinta : IMG.suave;
+      const txt = q.length ? q.join(" · ") : "—";
+      if(q.length === 2 && c.measureText(txt).width > anchoCol - 26){
+        c.font = fuente(400, 21, '"IBM Plex Sans"');
+        c.fillText(q[0], cx, y + IMG.filaAlto/2 - 13);
+        c.fillText(q[1], cx, y + IMG.filaAlto/2 + 13);
+        c.font = fuente(400, 24, '"IBM Plex Sans"');
+      }else{
+        let f2 = 24;
+        while(f2 > 15 && c.measureText(txt).width > anchoCol - 26){
+          f2 -= 1; c.font = fuente(400, f2, '"IBM Plex Sans"');
+        }
+        c.fillText(txt, cx, y + IMG.filaAlto/2);
+        c.font = fuente(400, 24, '"IBM Plex Sans"');
+      }
+    });
+  });
+
+  // Rejilla
+  c.strokeStyle = IMG.linea; c.lineWidth = 1;
+  for(let i = 0; i <= filas.length; i++){
+    const y = y0 + IMG.cabeceraAlto + i*IMG.filaAlto + .5;
+    c.beginPath(); c.moveTo(x0, y); c.lineTo(x0 + anchoTabla, y); c.stroke();
+  }
+  for(let j = 0; j <= PUESTOS.length; j++){
+    const x = x0 + IMG.colFecha + anchoCol*j + .5;
+    c.beginPath(); c.moveTo(x, y0); c.lineTo(x, y0 + IMG.cabeceraAlto + filas.length*IMG.filaAlto); c.stroke();
+  }
+  c.strokeRect(x0 + .5, y0 + .5, anchoTabla - 1, IMG.cabeceraAlto + filas.length*IMG.filaAlto - 1);
+
+  return cv;
+}
+
+async function descargarImagen(){
+  const {anio, mes} = mesVigente();
+  const btn = $("#btn-imagen");
+  if(btn){ btn.disabled = true; btn.textContent = "Preparando…"; }
+  const restaurar = () => { if(btn){ btn.disabled = false; btn.textContent = "Descargar como imagen"; } };
+  const nombre = "megafonia-" + MESES[mes] + "-" + anio + ".png";
+  try{
+    const dl = modoLocal ? null : await claude.use("downloads");
+    if(!modoLocal && !dl){ restaurar(); return brindis("Descargar imágenes no está disponible en esta vista."); }
+    try{ await document.fonts.ready; }catch(e){}   // sin las fuentes cargadas saldría con la de reserva
+    await cargarLogo();
+    const blob = await new Promise(res => dibujarPlanilla().toBlob(res, "image/png"));
+    if(modoLocal) bajarArchivo(blob, nombre);
+    else await dl.save({filename:nombre, data:blob});
+    restaurar();
+    brindis("Imagen guardada");
+  }catch(err){
+    restaurar();
+    const code = (err && err.code) || "unavailable";
+    if(code === "declined") return;
+    if(code === "rate_limited") return brindis("Hay otra descarga esperando respuesta.");
+    brindis("No se pudo generar la imagen.");
+  }
+}
+
+/* ═══ Deshacer / rehacer ═══════════════════════════════════════════ */
+
+const TOPE_HISTORIAL = 60;
+let pilaUndo = [], pilaRedo = [], instantanea = "", ultimoGuardado = "";
+
+const retrato = () => JSON.stringify({equipo:E.equipo, config:E.config, plannings:E.plannings});
+
+function restaurar(snap){
+  const d = JSON.parse(snap);
+  E.equipo = d.equipo; E.config = d.config; E.plannings = d.plannings;
+  // mesActual queda como está: qué mes mirás es navegación, no un cambio que deshacer.
+}
+function recalcularSucio(){ sucio = instantanea !== ultimoGuardado; }
+
+function memoria(){
+  try{
+    sessionStorage.setItem("megafonia:undo", JSON.stringify(pilaUndo));
+    sessionStorage.setItem("megafonia:redo", JSON.stringify(pilaRedo));
+    sessionStorage.setItem("megafonia:base", ultimoGuardado);
+  }catch(e){}   // ventana privada o almacenamiento bloqueado: el historial vive solo en memoria
+}
+function recordarSesion(){
+  try{
+    pilaUndo = JSON.parse(sessionStorage.getItem("megafonia:undo") || "[]");
+    pilaRedo = JSON.parse(sessionStorage.getItem("megafonia:redo") || "[]");
+    const base = sessionStorage.getItem("megafonia:base");
+    if(base) ultimoGuardado = base;
+  }catch(e){ pilaUndo = []; pilaRedo = []; }
+}
+
+// Se llama DESPUÉS de tocar el estado: `instantanea` todavía guarda cómo estaba antes.
+function marcarSucio(){
+  pilaUndo.push(instantanea);
+  if(pilaUndo.length > TOPE_HISTORIAL) pilaUndo.shift();
+  pilaRedo = [];
+  instantanea = retrato();
+  recalcularSucio();
+  memoria();
+}
+
+function deshacer(){
+  if(soloLectura || !pilaUndo.length) return brindis("No hay nada que deshacer.");
+  pilaRedo.push(instantanea);
+  instantanea = pilaUndo.pop();
+  restaurar(instantanea);
+  recalcularSucio(); memoria(); render();
+  brindis(sucio ? "Cambio deshecho" : "Volviste a lo último guardado");
+}
+function rehacer(){
+  if(soloLectura || !pilaRedo.length) return brindis("No hay nada que rehacer.");
+  pilaUndo.push(instantanea);
+  instantanea = pilaRedo.pop();
+  restaurar(instantanea);
+  recalcularSucio(); memoria(); render();
+  brindis("Cambio rehecho");
+}
+
+/* ═══ Interacción ══════════════════════════════════════════════════ */
+function brindis(txt){
+  const b = $("#brindis"); if(!b) return;
+  b.textContent = txt; b.classList.add("visible");
+  clearTimeout(brindis._t);
+  brindis._t = setTimeout(() => b.classList.remove("visible"), 2600);
+}
+
+document.addEventListener("click", ev => {
+  const t = ev.target.closest("button");
+  if(!t) return;
+
+  if(t.dataset.vista){ vista = t.dataset.vista; render(); return; }
+
+  if(t.dataset.salto){
+    const {anio, mes} = mesVigente();
+    const d = new Date(Date.UTC(anio, mes + Number(t.dataset.salto), 1));
+    E.mesActual = claveMes(d.getUTCFullYear(), d.getUTCMonth());
+    render(); return;
+  }
+  if(t.id === "btn-deshacer") return deshacer();
+  if(t.id === "btn-rehacer") return rehacer();
+  if(t.id === "btn-generar") return generar();
+  if(t.id === "btn-guardar") return guardar();
+
+  if(t.dataset.msj){ tipoMsj = t.dataset.msj; render(); return; }
+  if(t.id === "btn-imagen") return descargarImagen();
+  if(t.id === "btn-exportar") return exportarDatos();
+  if(t.id === "btn-copiar") return copiar($("#area-msj").value);
+  if(t.id === "btn-wa"){
+    window.open("https://wa.me/?text=" + encodeURIComponent($("#area-msj").value), "_blank", "noopener");
+    return;
+  }
+  if(soloLectura) return;
+
+  if(t.dataset.diaSemana !== undefined){
+    const d = Number(t.dataset.diaSemana);
+    E.config.dias = E.config.dias.includes(d)
+      ? E.config.dias.filter(x => x !== d) : E.config.dias.concat(d).sort();
+    marcarSucio(); render(); return;
+  }
+  if(t.id === "btn-sumar"){
+    let n = 1, id;
+    do { id = "persona-" + n++; } while(persona(id));
+    E.equipo.push({id:id, nombre:"Nombre y apellido", puestos:PUESTOS.map(p => p.id), activo:true});
+    marcarSucio(); render();
+    const inputs = document.querySelectorAll(".persona input.nombre");
+    const ultimo = inputs[inputs.length-1];
+    if(ultimo){ ultimo.focus(); ultimo.select(); }
+    return;
+  }
+
+  const fila = t.closest(".persona");
+  if(!fila) return;
+  const p = persona(fila.dataset.id); if(!p) return;
+
+  if(t.dataset.puesto){
+    p.puestos = p.puestos.includes(t.dataset.puesto)
+      ? p.puestos.filter(x => x !== t.dataset.puesto) : p.puestos.concat(t.dataset.puesto);
+    marcarSucio(); render(); return;
+  }
+  if(t.dataset.accion === "activo"){ p.activo = !p.activo; marcarSucio(); render(); return; }
+  if(t.dataset.accion === "borrar"){
+    if(!confirm("¿Sacar a " + p.nombre + " del equipo? Las fechas que ya tenía asignadas quedan vacías."))
+      return;
+    E.equipo = E.equipo.filter(x => x.id !== p.id);
+    Object.values(E.plannings).forEach(pl => pl.fechas.forEach(f =>
+      Object.keys(f.puestos).forEach(k =>
+        f.puestos[k] = f.puestos[k].map(id => id === p.id ? null : id))));
+    marcarSucio(); render();
+  }
+});
+
+document.addEventListener("change", ev => {
+  const el = ev.target;
+  if(el.id === "archivo-datos"){
+    if(el.files && el.files[0]) importarDatos(el.files[0]);
+    el.value = "";                       // así se puede volver a elegir el mismo archivo
+    return;
+  }
+  if(el.classList.contains("asig")){
+    const {anio, mes} = mesVigente();
+    const plan = E.plannings[claveMes(anio, mes)];
+    const fecha = plan.fechas.find(f => f.dia === Number(el.dataset.dia));
+    fecha.puestos[el.dataset.puesto][Number(el.dataset.idx)] = el.value || null;
+    marcarSucio(); render(); return;
+  }
+  if(el.id === "tarde-excl"){ E.config.tardeExclusiva = el.checked; marcarSucio(); render(); return; }
+  if(el.dataset.campo === "nombre" && retrato() !== instantanea) marcarSucio();
+});
+
+document.addEventListener("input", ev => {
+  // El nombre se edita sin re-renderizar, para no perder el cursor a mitad de palabra.
+  if(ev.target.dataset.campo !== "nombre") return;
+  const p = persona(ev.target.closest(".persona").dataset.id);
+  if(!p) return;
+  p.nombre = ev.target.value;
+  if(!sucio){ sucio = true; const e = $(".estado-guardado");
+    if(e){ e.classList.add("sucio"); e.textContent = "sin guardar"; }
+    const g = $("#btn-guardar"); if(g) g.disabled = false; }
+});
+
+document.addEventListener("keydown", ev => {
+  if(!(ev.metaKey || ev.ctrlKey) || ev.key.toLowerCase() !== "z") return;
+  const foco = document.activeElement;
+  if(foco && /^(INPUT|TEXTAREA)$/.test(foco.tagName)) return;  // dejá que el campo maneje su propio undo
+  ev.preventDefault();
+  (ev.shiftKey ? rehacer : deshacer)();
+});
+
+let publicando = false;
+window.addEventListener("beforeunload", ev => {
+  if(sucio && !soloLectura && !publicando) ev.preventDefault();
+});
+
+async function copiar(txt){
+  try{
+    await navigator.clipboard.writeText(txt);
+    brindis("Mensaje copiado");
+  }catch(e){
+    const ta = $("#area-msj");
+    if(ta){ ta.focus(); ta.select(); }
+    brindis("Copialo con Ctrl+C / Cmd+C");
+  }
+}
+
+/* ═══ Guardado ═════════════════════════════════════════════════════ */
+
+function documentoCompleto(){
+  const limpio = {equipo:E.equipo, config:E.config, plannings:{}, mesActual:E.mesActual};
+  // Los meses que solo se hojearon quedan vacíos: no se guardan.
+  Object.keys(E.plannings).forEach(clave => {
+    const pl = E.plannings[clave];
+    if(pl.fechas.some(f => Object.values(f.puestos).some(sl => sl.some(Boolean))))
+      limpio.plannings[clave] = pl;
+  });
+  const datos = JSON.stringify(limpio, null, 2).replace(/</g, "\\u003c");
+  return '<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8">\n' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
+    '<title>Consola de Megafonía</title>\n' +
+    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700' +
+    '&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">\n' +
+    '<style id="css">' + FUENTE_CSS + '</style>\n</head>\n<body>\n' +
+    '<script type="application/json" id="estado">\n' + datos + '\n<\/script>\n' +
+    '<script id="app">' + FUENTE_JS + '<\/script>\n</body>\n</html>';
+}
+
+// Abierto como archivo en tu Mac no hay dónde publicar: los datos viven en este navegador.
+function arrancarModoLocal(){
+  modoLocal = true;
+  try{
+    const guardado = localStorage.getItem(LLAVE_LOCAL);
+    if(guardado){ restaurar(guardado); instantanea = ultimoGuardado = retrato(); }
+  }catch(e){}   // navegación privada o almacenamiento bloqueado: se arranca con lo que trae el archivo
+  recalcularSucio(); render();
+}
+
+function guardarLocal(){
+  try{
+    localStorage.setItem(LLAVE_LOCAL, retrato());
+    ultimoGuardado = instantanea;
+    recalcularSucio(); memoria(); render();
+    brindis("Guardado en este equipo");
+  }catch(e){
+    brindis("Este navegador no deja guardar. Exportá los datos para no perderlos.");
+  }
+}
+
+// El visor de artifacts no permite descargas directas, pero un archivo local sí.
+function bajarArchivo(blob, nombre){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ═══ Copia de seguridad ═══════════════════════════════════════════ */
+
+async function exportarDatos(){
+  const json = JSON.stringify({equipo:E.equipo, config:E.config, plannings:E.plannings}, null, 2);
+  const nombre = "megafonia-datos.json";
+  if(modoLocal){ bajarArchivo(new Blob([json], {type:"application/json"}), nombre);
+                 return brindis("Datos exportados"); }
+  try{
+    const dl = await claude.use("downloads");
+    if(!dl) return brindis("Exportar no está disponible en esta vista.");
+    await dl.save({filename:nombre, data:json});
+    brindis("Datos exportados");
+  }catch(err){
+    if((err && err.code) === "declined") return;
+    brindis("No se pudieron exportar los datos.");
+  }
+}
+
+function importarDatos(archivo){
+  const lector = new FileReader();
+  lector.onload = () => {
+    let d;
+    try{ d = JSON.parse(lector.result); }
+    catch(e){ return brindis("Ese archivo no es un JSON válido."); }
+    if(!d || !Array.isArray(d.equipo) || !d.equipo.length)
+      return brindis("Ese archivo no tiene un equipo adentro.");
+    if(!confirm("Vas a reemplazar el equipo y los plannings de esta copia por los del archivo " +
+                "(" + d.equipo.length + " personas). Podés deshacerlo con ↶. ¿Seguimos?")) return;
+    restaurar(JSON.stringify({
+      equipo: d.equipo,
+      config: d.config && Array.isArray(d.config.dias) ? d.config : E.config,
+      plannings: d.plannings && typeof d.plannings === "object" ? d.plannings : {}
+    }));
+    marcarSucio(); render();
+    brindis("Datos importados: tocá Guardar para conservarlos");
+  };
+  lector.onerror = () => brindis("No se pudo leer el archivo.");
+  lector.readAsText(archivo);
+}
+
+function pasarASoloLectura(){
+  soloLectura = true; sucio = false; render();
+  brindis("Esta vista es de solo lectura: podés mirar y copiar, no guardar.");
+}
+
+async function guardar(){
+  if(soloLectura) return;
+  if(modoLocal) return guardarLocal();
+  if(!capArtifact) return brindis("El guardado no está disponible en esta vista.");
+  const btn = $("#btn-guardar");
+  if(btn){ btn.disabled = true; btn.textContent = "Guardando…"; }
+  publicando = true;
+  try{
+    await capArtifact.publish(documentoCompleto());
+    ultimoGuardado = instantanea;        // la referencia para "sin guardar" se mueve acá
+    sucio = false; memoria();            // la vista se recarga sola con la versión nueva
+  }catch(err){
+    publicando = false;
+    const code = (err && err.code) || "upstream_error";
+    if(code === "conflict") return;      // ya se está recargando a la versión que ganó
+    if(btn){ btn.disabled = false; btn.textContent = "Guardar"; }
+    if(code === "not_writer" || code === "not_granted" || code === "not_declared"
+       || code === "consent_required" || code === "capability_disabled") return pasarASoloLectura();
+    if(code === "rate_limited") return brindis("Demasiados guardados seguidos. Esperá unos segundos.");
+    if(code === "too_large")    return brindis("El planning quedó demasiado grande para guardarse.");
+    brindis("No se pudo guardar. Probá de nuevo en un momento.");
+  }
+}
+
+/* ═══ Arranque ═════════════════════════════════════════════════════ */
+
+mesVigente();
+instantanea = ultimoGuardado = retrato();
+recordarSesion();          // el historial sobrevive a la recarga que provoca cada guardado
+recalcularSucio();
+render();
+
+if(window.claude && window.claude.use){
+  claude.use("artifact")
+    .then(cap => { capArtifact = cap; if(!cap) pasarASoloLectura(); })
+    .catch(() => pasarASoloLectura());
+}else{
+  arrancarModoLocal();          // archivo abierto en tu Mac: guarda en este navegador
+}
+</script>

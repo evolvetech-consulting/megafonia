@@ -1,0 +1,31 @@
+# ══════════════════════════════════════════════════════════════
+#  EQUIPO DE MEGAFONÍA — configuración de miembros
+# ══════════════════════════════════════════════════════════════
+#
+#  Formato:   Nombre | puestos que puede cubrir
+#
+#  Puestos válidos:  camara  audio  produccion  streaming  tarde
+#  Atajo:            todos   → habilita los cinco
+#                    todos -streaming  → todos MENOS streaming
+#
+#  Para dar de baja a alguien temporalmente (vacaciones, licencia),
+#  poné un # al principio de su línea. Para sumar a alguien nuevo,
+#  agregá una línea más. El nombre se usa tal cual en el WhatsApp.
+#
+# ──────────────────────────────────────────────────────────────
+
+Ana Ejemplo    | todos
+Bruno Ejemplo     | todos
+Carla Ejemplo   | todos
+Diego Ejemplo       | todos
+Elena Ejemplo       | todos
+Fabián Ejemplo                | audio
+Gabi Ejemplo         | todos
+Hugo Ejemplo          | todos
+Irene Ejemplo       | todos
+
+# ── Aparecen en el planning de agosto pero no en la lista del grupo.
+# ── Sacales el # si forman parte del equipo.
+# Julián Ejemplo             | todos
+# Karen Ejemplo           | todos
+# Leo Ejemplo             | todos

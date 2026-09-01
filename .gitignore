@@ -1,0 +1,15 @@
+# ── Datos reales del equipo: nunca se publican ──────────────────
+# La app con el equipo y los plannings de la iglesia adentro.
+# Lo que se publica es megafonia.html, con un equipo de ejemplo.
+app.html
+
+# El equipo real y los meses generados desde la terminal.
+equipo.txt
+plannings/
+
+# Exportaciones de la app.
+megafonia-datos*.json
+*.local.*
+
+# macOS
+.DS_Store
