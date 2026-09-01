@@ -11,8 +11,7 @@
   --tinta:#16222D; --suave:#5D7383; --tenue:#8698A5;
   --acento:#0B6E8A; --acento-tinta:#FFFFFF; --acento-suave:#E0EFF3;
   --ok:#1B7357; --alerta:#B65418;
-  --p-camara:#6F4FA3; --p-audio:#B65418; --p-produccion:#1B7357;
-  --p-streaming:#A93A55; --p-tarde:#2F6BA5;
+  --peligro:#A93A55;
   --sombra:0 1px 2px rgba(22,34,45,.06), 0 8px 24px -16px rgba(22,34,45,.28);
   --r:10px;
 }
@@ -22,8 +21,7 @@
     --tinta:#E7EFF4; --suave:#93A9B7; --tenue:#6F8493;
     --acento:#4CB7D4; --acento-tinta:#08222B; --acento-suave:#123641;
     --ok:#4FBE96; --alerta:#E28B4A;
-    --p-camara:#AC8EDB; --p-audio:#E5904F; --p-produccion:#52C29A;
-    --p-streaming:#E37E95; --p-tarde:#73A8DE;
+    --peligro:#E37E95;
     --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
   }
 }
@@ -32,8 +30,7 @@
   --tinta:#E7EFF4; --suave:#93A9B7; --tenue:#6F8493;
   --acento:#4CB7D4; --acento-tinta:#08222B; --acento-suave:#123641;
   --ok:#4FBE96; --alerta:#E28B4A;
-  --p-camara:#AC8EDB; --p-audio:#E5904F; --p-produccion:#52C29A;
-  --p-streaming:#E37E95; --p-tarde:#73A8DE;
+  --peligro:#E37E95;
   --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
 }
 
@@ -168,6 +165,10 @@ textarea.notas{
   resize:vertical; min-height:74px;
 }
 textarea.notas:focus{border-color:var(--acento); background:var(--panel)}
+.sin-claude{
+  color:var(--suave); font-size:13.5px; line-height:1.55; margin:0;
+  padding:11px 14px; background:var(--panel2); border-radius:var(--r); max-width:66ch;
+}
 .reglas{display:flex; flex-wrap:wrap; gap:7px; margin-top:15px}
 .regla{
   display:inline-flex; align-items:center; gap:3px; background:var(--acento-suave);
@@ -246,7 +247,7 @@ details.a-mano summary:hover{color:var(--tinta)}
   padding:6px 9px; color:var(--tenue); font-size:13px; line-height:1;
 }
 .icono:hover{background:var(--panel2); border-color:var(--linea); color:var(--tinta)}
-.icono.peligro:hover{color:var(--p-streaming); border-color:var(--p-streaming)}
+.icono.peligro:hover{color:var(--peligro); border-color:var(--peligro)}
 
 /* ── Mensajes ─────────────────────────────────────────── */
 .selector-msj{display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap}
@@ -298,6 +299,35 @@ table.planilla tbody tr:nth-child(even) td{background:var(--panel2)}
 table.planilla td.hueco{color:var(--tenue)}
 
 /* ── Ajustes ──────────────────────────────────────────── */
+.puesto-cfg{
+  display:flex; align-items:center; gap:11px; padding:9px 0;
+  border-bottom:1px solid var(--linea);
+}
+.puesto-cfg:last-of-type{border-bottom:0}
+.puesto-cfg .tinte{
+  width:26px; height:26px; padding:0; border:1px solid var(--linea);
+  border-radius:7px; background:none; cursor:pointer; flex:none;
+}
+.puesto-cfg .rotulo{
+  flex:1; min-width:0; background:transparent; border:1px solid transparent;
+  border-radius:7px; padding:6px 8px; font-weight:500;
+}
+.puesto-cfg .rotulo:hover{border-color:var(--linea); background:var(--panel2)}
+.puesto-cfg .turno{
+  display:flex; align-items:center; gap:6px; color:var(--suave);
+  font-size:13px; white-space:nowrap; cursor:pointer;
+}
+.puesto-cfg .turno input{accent-color:var(--acento); cursor:pointer}
+.puesto-cfg .cupo{
+  display:flex; align-items:center; gap:6px; color:var(--suave);
+  font-size:13px; white-space:nowrap;
+}
+.puesto-cfg .cupo input{
+  width:52px; background:var(--panel2); border:1px solid var(--linea);
+  border-radius:7px; padding:5px 7px; text-align:center;
+}
+@media (max-width:640px){ .puesto-cfg .cupo{font-size:12px} .puesto-cfg .cupo input{width:44px} }
+
 .ajustes{display:flex; gap:22px; flex-wrap:wrap; align-items:center}
 .grupo-dias{display:flex; gap:5px; flex-wrap:wrap}
 label.switch{display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--suave)}
@@ -310,7 +340,7 @@ details.avisos{
   border:1px solid var(--linea); border-left:3px solid var(--alerta);
   border-radius:var(--r); background:var(--panel); font-size:14px; overflow:hidden;
 }
-details.avisos.doble{border-left-color:var(--p-streaming)}
+details.avisos.doble{border-left-color:var(--peligro)}
 details.avisos > summary{
   cursor:pointer; padding:11px 15px; display:flex; align-items:center; gap:10px;
   list-style:none; color:var(--suave); user-select:none;
@@ -331,8 +361,8 @@ details.avisos b{font-weight:600}
 ul.choques{margin:0 0 10px; padding-left:19px}
 ul.choques li{margin-bottom:4px; color:var(--tinta)}
 select.asig.chocado{
-  border-color:var(--p-streaming);
-  background-color:color-mix(in srgb, var(--p-streaming) 9%, transparent);
+  border-color:var(--peligro);
+  background-color:color-mix(in srgb, var(--peligro) 9%, transparent);
 }
 .vacio{text-align:center; padding:56px 20px; color:var(--tenue)}
 .pie{
@@ -457,13 +487,18 @@ select.asig.chocado{
 
 /* ═══ Datos base ═══════════════════════════════════════════════════ */
 
-const PUESTOS = [
-  {id:"camara",     label:"Cámara",     emoji:"🎥", cupo:1},
-  {id:"audio",      label:"Audio",      emoji:"🎙️", cupo:1},
-  {id:"produccion", label:"Producción", emoji:"🎛️", cupo:1},
-  {id:"streaming",  label:"Streaming",  emoji:"📡", cupo:1},
-  {id:"tarde",      label:"Tarde",      emoji:"🌇", cupo:2}
+// Los puestos son datos: cada equipo define los suyos. Estos son los de
+// megafonía, que sirven de punto de partida si el estado no trae ninguno.
+const PUESTOS_INICIALES = [
+  {id:"camara",     label:"Cámara",     emoji:"🎥", cupo:1, color:"#8B6BC7"},
+  {id:"audio",      label:"Audio",      emoji:"🎙️", cupo:1, color:"#D97B2E"},
+  {id:"produccion", label:"Producción", emoji:"🎛️", cupo:1, color:"#34A07A"},
+  {id:"streaming",  label:"Streaming",  emoji:"📡", cupo:1, color:"#C75577"},
+  {id:"tarde",      label:"Tarde",      emoji:"🌇", cupo:2, color:"#4A87C4", otroTurno:true}
 ];
+const PALETA_PUESTOS = ["#8B6BC7","#D97B2E","#34A07A","#C75577","#4A87C4",
+                        "#C29A2E","#5B8C7B","#B0607F","#6E7FC4","#A8763F"];
+let PUESTOS = [];   // apunta al array del estado; se fija en el arranque
 const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
                "agosto","septiembre","octubre","noviembre","diciembre"];
 const DIAS_SEM = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
@@ -479,6 +514,17 @@ const logoSVG = color =>
   '<path fill="' + color + '" transform="translate(-20.5,-20.6)" d="' + LOGO_D + '"/></svg>';
 
 const E = JSON.parse(document.getElementById("estado").textContent);
+function fijarPuestos(){
+  if(!Array.isArray(E.puestos) || !E.puestos.length)
+    E.puestos = JSON.parse(JSON.stringify(PUESTOS_INICIALES));
+  E.puestos.forEach((p, i) => {          // completa lo que falte, sin pisar lo elegido
+    if(!p.color) p.color = PALETA_PUESTOS[i % PALETA_PUESTOS.length];
+    if(!p.emoji) p.emoji = "•";
+    if(!(p.cupo >= 1)) p.cupo = 1;
+  });
+  PUESTOS = E.puestos;
+}
+fijarPuestos();
 // El CSS y este mismo script son el molde con el que la página se reconstruye al guardar.
 // Hay que leerlos ahora: el primer render los saca de vista.
 const FUENTE_CSS = document.getElementById("css").textContent;
@@ -496,6 +542,7 @@ let avisosAbiertos = false;
 try{ avisosAbiertos = localStorage.getItem("megafonia:avisos") === "1"; }catch(e){}
 let sucio = false, vista = "planning", tipoMsj = "planning", soloLectura = false,
     capArtifact = null, modoLocal = false;
+let capSample = undefined;   // undefined = todavía no se sabe; null = acá no hay
 const LLAVE_LOCAL = "megafonia:estado";
 
 const $ = s => document.querySelector(s);
@@ -596,7 +643,7 @@ function intento(fechas, gente, historial, azar, restricciones){
     const enManana = new Set(), enTarde = new Set(), puestos = {};
     PUESTOS.forEach(pu => {
       puestos[pu.id] = Array.from({length:pu.cupo}, () => {
-        const esTarde = pu.id === "tarde";
+        const esTarde = pu.otroTurno === true;
         const vetados = (esTarde && !E.config.tardeExclusiva)
           ? enTarde : new Set([...enManana, ...enTarde]);
         const candidatos = gente.filter(p => p.puestos.includes(pu.id) && !vetados.has(p.id)
@@ -813,15 +860,15 @@ function choques(plan){
   const restricciones = restriccionesDe(claveMes(anio, mes));
   plan.fechas.forEach(f => {
     // Alguien asignado a un día que sus notas de disponibilidad excluyen.
-    PUESTOS.forEach(pu => f.puestos[pu.id].forEach(id => {
+    PUESTOS.forEach(pu => (f.puestos[pu.id] || []).forEach(id => {
       if(id && !puedeEse(id, f.dia, restricciones))
         salida.push({dia:f.dia, dow:f.dow, id:id, disponibilidad:true,
                      motivo:"no puede este d\u00eda y est\u00e1 en " + pu.label.toLowerCase()});
     }));
     const manana = new Map();          // id -> puestos de la mañana que ocupa
     PUESTOS.forEach(pu => {
-      if(pu.id === "tarde") return;
-      f.puestos[pu.id].forEach(id => {
+      if(pu.otroTurno) return;
+      (f.puestos[pu.id] || []).forEach(id => {
         if(!id) return;
         manana.set(id, (manana.get(id) || []).concat(pu.label));
       });
@@ -831,13 +878,17 @@ function choques(plan){
         salida.push({dia:f.dia, dow:f.dow, id:id, motivo:puestos.join(" y ") + " a la vez"});
     });
 
-    const enTarde = f.puestos.tarde.filter(Boolean);
-    enTarde.forEach((id, i) => {
-      if(enTarde.indexOf(id) !== i)
-        salida.push({dia:f.dia, dow:f.dow, id:id, motivo:"dos veces en el turno tarde"});
-      else if(E.config.tardeExclusiva && manana.has(id))
-        salida.push({dia:f.dia, dow:f.dow, id:id, tarde:true,
-                     motivo:manana.get(id)[0] + " a la mañana y además el turno tarde"});
+    const otros = PUESTOS.filter(pu => pu.otroTurno);
+    otros.forEach(pu => {
+      const enTurno = (f.puestos[pu.id] || []).filter(Boolean);
+      enTurno.forEach((id, i) => {
+        if(enTurno.indexOf(id) !== i)
+          salida.push({dia:f.dia, dow:f.dow, id:id,
+                       motivo:"dos veces en " + pu.label.toLowerCase()});
+        else if(E.config.tardeExclusiva && manana.has(id))
+          salida.push({dia:f.dia, dow:f.dow, id:id, tarde:true,
+                       motivo:manana.get(id)[0] + " y además " + pu.label.toLowerCase()});
+      });
     });
   });
   return salida;
@@ -861,7 +912,7 @@ function vistaPlanning(plan, activos){
         '<span class="num">' + f.dia + '</span></div>' +
       PUESTOS.map(p =>
         '<div class="puesto">' +
-          '<span class="puesto-nom"><span class="punto" style="background:var(--p-' + p.id + ')"></span>' +
+          '<span class="puesto-nom"><span class="punto" style="background:' + esc(p.color) + '"></span>' +
             p.label + '</span>' +
           '<div class="slots">' +
             f.puestos[p.id].map((asignado, i) =>
@@ -920,22 +971,30 @@ function panelDisponibilidad(){
 
   return '<section class="tarjeta disponibilidad">' +
     '<h2>Quién no puede este mes</h2>' +
-    (soloLectura ? "" :
-      '<textarea id="notas-mes" class="notas" spellcheck="false" rows="3" ' +
+    (soloLectura ? "" : capSample === null
+      ? '<p class="sin-claude">Esta copia no puede consultar a Claude, así que las ' +
+        'restricciones se cargan a mano acá abajo. Para escribirlas en texto corrido, ' +
+        'abrí la app desde el enlace.</p>'
+      : '<textarea id="notas-mes" class="notas" spellcheck="false" rows="3" ' +
         'placeholder="Escribilo como se lo dirías a alguien:&#10;' +
-        'Illia H. este mes solo puede el sábado 12&#10;' +
-        'Damaris no está el 26">' + esc(notaDe(clave)) + '</textarea>' +
+        'Ana solo puede el sábado 12&#10;' +
+        'Bruno no está el 26">' + esc(notaDe(clave)) + '</textarea>' +
       '<div class="acciones" style="margin-top:10px; flex-wrap:wrap">' +
-        '<button class="btn primario" id="btn-interpretar">Interpretar el texto</button>' +
-        '<span style="color:var(--suave);font-size:13px">Lo lee Claude y lo convierte en reglas, ' +
-          'que podés revisar acá abajo antes de generar.</span>' +
+        '<button class="btn primario" id="btn-interpretar"' +
+          (capSample === undefined ? " disabled" : "") + '>Interpretar el texto</button>' +
+        '<span style="color:var(--suave);font-size:13px">' +
+          (capSample === undefined
+            ? "Viendo si esta copia puede consultar a Claude…"
+            : "Lo lee Claude y lo convierte en reglas, que podés revisar acá abajo antes de generar.") +
+        '</span>' +
       '</div>') +
     (reglas.length
       ? '<div class="reglas">' + fichas + '</div>'
       : '<p style="color:var(--tenue);font-size:13.5px;margin:14px 0 0">' +
         'Sin restricciones: el generador puede usar a cualquiera en cualquier fecha.</p>') +
     (soloLectura ? "" :
-      '<details class="a-mano"><summary>Cargar una a mano</summary>' +
+      '<details class="a-mano"' + (capSample === null ? " open" : "") +
+        '><summary>Cargar una a mano</summary>' +
         '<div class="fila-mano">' +
           '<select id="r-quien" aria-label="Persona"><option value="">Elegí a alguien…</option>' +
             opcionesGente + '</select>' +
@@ -991,7 +1050,7 @@ function vistaEquipo(){
       '<input class="nombre" value="' + esc(p.nombre) + '" data-campo="nombre" aria-label="Nombre"' +
         (soloLectura ? " readonly" : "") + '>' +
       '<div class="chips">' + PUESTOS.map(pu =>
-        '<button class="chip" data-puesto="' + pu.id + '" style="--c:var(--p-' + pu.id + ')" ' +
+        '<button class="chip" data-puesto="' + pu.id + '" style="--c:' + esc(pu.color) + '" ' +
           'aria-pressed="' + p.puestos.includes(pu.id) + '">' + pu.label + '</button>').join("") + '</div>' +
       '<div class="persona-acc">' +
         '<button class="icono" data-accion="activo" title="' + (p.activo ? "Dar de baja temporal" : "Reactivar") + '">' +
@@ -1003,11 +1062,35 @@ function vistaEquipo(){
   const dias = DIAS_CORTOS.map((d,i) =>
     '<button class="chip" data-dia-semana="' + i + '" aria-pressed="' + E.config.dias.includes(i) + '">' + d + '</button>').join("");
 
-  return '<section class="tarjeta" style="margin-top:0"><h2>Días de servicio</h2>' +
+  const puestos = PUESTOS.map((pu, i) =>
+    '<div class="puesto-cfg" data-puesto-idx="' + i + '">' +
+      '<input type="color" class="tinte" value="' + esc(pu.color) + '" data-campo="color" ' +
+        'aria-label="Color de ' + esc(pu.label) + '"' + (soloLectura ? " disabled" : "") + '>' +
+      '<input class="rotulo" value="' + esc(pu.label) + '" data-campo="puesto-nombre" ' +
+        'aria-label="Nombre del puesto"' + (soloLectura ? " readonly" : "") + '>' +
+      '<label class="turno" title="Un segundo turno el mismo día, como el de la tarde">' +
+        '<input type="checkbox" data-campo="otro-turno"' + (pu.otroTurno ? " checked" : "") +
+        (soloLectura ? " disabled" : "") + '>otro turno</label>' +
+      '<label class="cupo">lleva' +
+        '<input type="number" min="1" max="6" value="' + pu.cupo + '" data-campo="cupo"' +
+        (soloLectura ? " disabled" : "") + '>' +
+        (pu.cupo === 1 ? "persona" : "personas") + '</label>' +
+      (soloLectura ? "" :
+        '<button class="icono peligro" data-borrar-puesto="' + i + '" ' +
+        'title="Quitar este puesto">✕</button>') +
+    '</div>').join("");
+
+  return '<section class="tarjeta" style="margin-top:0"><h2>Puestos a cubrir</h2>' +
+      puestos + (soloLectura ? "" :
+      '<button class="btn" id="btn-sumar-puesto" style="margin-top:11px">+ Sumar puesto</button>') +
+      '<p style="color:var(--suave);font-size:13px;margin:14px 0 0;max-width:66ch">' +
+      'El nombre y el color son los que se ven en el planning y en la planilla del grupo. ' +
+      '«Lleva» es cuánta gente va en ese puesto cada fecha.</p></section>' +
+    '<section class="tarjeta"><h2>Días de servicio</h2>' +
       '<div class="ajustes"><div class="grupo-dias">' + dias + '</div>' +
       '<label class="switch"><input type="checkbox" id="tarde-excl"' +
         (E.config.tardeExclusiva ? " checked" : "") + (soloLectura ? " disabled" : "") + '>' +
-        'Quien sirve a la mañana no repite en el turno tarde</label></div></section>' +
+        'Quien ya sirve ese día no repite en un puesto de otro turno</label></div></section>' +
     '<section class="tarjeta"><h2>Equipo · ' + E.equipo.filter(p=>p.activo).length + ' activos</h2>' +
       gente + (soloLectura ? "" :
       '<button class="btn" id="btn-sumar" style="margin-top:12px">+ Sumar persona</button>') +
@@ -1032,7 +1115,7 @@ function tablaHTML(){
   const plan = planningDe(anio, mes);
   if(!plan.fechas.length) return "";
   const cabecera = '<tr><th class="esquina">' + MESES[mes] + " " + anio + '</th>' +
-    PUESTOS.map(p => '<th><span class="punto" style="background:var(--p-' + p.id + ')"></span>' +
+    PUESTOS.map(p => '<th><span class="punto" style="background:' + esc(p.color) + '"></span>' +
       p.label + '</th>').join("") + '</tr>';
   const cuerpo = plan.fechas.map(f =>
     '<tr><th class="fila-fecha">' + DIAS_SEM[f.dow] + " " + f.dia + '</th>' +
@@ -1096,13 +1179,9 @@ const IMG = {ancho:1580, filaAlto:78, cabeceraAlto:84, titulo:96, margen:34,
 // la clara imprime mejor y pesa menos en un chat con fondo blanco.
 const PALETAS = {
   clara: {tinta:"#16222D", suave:"#5D7383", papel:"#FFFFFF", cebra:"#F3F7F9",
-          linea:"#DCE5EB", acento:"#0B6E8A", sobreAcento:"#FFFFFF",
-          puestos:{camara:"#6F4FA3", audio:"#B65418", produccion:"#1B7357",
-                   streaming:"#A93A55", tarde:"#2F6BA5"}},
+          linea:"#DCE5EB", acento:"#0B6E8A", sobreAcento:"#FFFFFF"},
   oscura:{tinta:"#E7EFF4", suave:"#93A9B7", papel:"#16222D", cebra:"#1D2B36",
-          linea:"#2B3D4A", acento:"#4CB7D4", sobreAcento:"#0A1F28",
-          puestos:{camara:"#AC8EDB", audio:"#E5904F", produccion:"#52C29A",
-                   streaming:"#E37E95", tarde:"#73A8DE"}}
+          linea:"#2B3D4A", acento:"#4CB7D4", sobreAcento:"#0A1F28"}
 };
 let paletaImagen = "oscura";
 try{ paletaImagen = localStorage.getItem("megafonia:paleta") || "oscura"; }catch(e){}
@@ -1177,7 +1256,7 @@ function dibujarPlanilla(){
     const ancho = c.measureText(etiqueta).width;
     const puntoX = cx - (ancho + 13 + 11)/2;
 
-    c.fillStyle = P.puestos[p.id];           // el punto del color del puesto
+    c.fillStyle = p.color;                   // el punto del color del puesto
     c.beginPath();
     if(c.roundRect) c.roundRect(puntoX, medio - 5.5, 11, 11, 3);
     else c.rect(puntoX, medio - 5.5, 11, 11);
@@ -1336,7 +1415,7 @@ function promptDisponibilidad(texto, fechas, anio, mes){
     '- Si alguien no puede en todo el mes, devolvé {"tipo":"solo","dias":[]}.',
     "- Una frase por persona; si una nota habla de dos personas, devolvé dos elementos.",
     "",
-    'Ejemplo: [{"id":"illia-h","tipo":"solo","dias":[12],"texto":"Illia H. este mes solo el sábado 12"}]',
+    'Ejemplo: [{"id":"ana","tipo":"solo","dias":[12],"texto":"Ana solo el sábado 12"}]',
     "",
     "Si las notas están vacías o no dicen nada sobre disponibilidad, respondé []."
   ].join("\n");
@@ -1355,8 +1434,11 @@ async function interpretarNotas(){
   const listo = () => { if(btn){ btn.disabled = false; btn.textContent = antes; } };
 
   try{
-    const sample = window.claude && claude.use ? await claude.use("sample") : null;
-    if(!sample){ listo(); return brindis("Interpretar el texto solo funciona en la copia del enlace."); }
+    const sample = capSample || (window.claude && claude.use ? await claude.use("sample") : null);
+    if(!sample){
+      capSample = null; listo(); render();
+      return brindis("Esta copia no puede consultar a Claude. Cargalas a mano.");
+    }
 
     const fechas = fechasDelMes(anio, mes);
     const crudas = await sample.json(promptDisponibilidad(texto, fechas, anio, mes),
@@ -1405,13 +1487,15 @@ function agregarRestriccionManual(){
 const TOPE_HISTORIAL = 60;
 let pilaUndo = [], pilaRedo = [], instantanea = "", ultimoGuardado = "";
 
-const retrato = () => JSON.stringify({equipo:E.equipo, config:E.config, plannings:E.plannings,
+const retrato = () => JSON.stringify({equipo:E.equipo, puestos:E.puestos, config:E.config, plannings:E.plannings,
                                       notas:E.notas || {}, restricciones:E.restricciones || {},
                                       enviados:E.enviados || {}});
 
 function restaurar(snap){
   const d = JSON.parse(snap);
   E.equipo = d.equipo; E.config = d.config; E.plannings = d.plannings;
+  if(Array.isArray(d.puestos) && d.puestos.length) E.puestos = d.puestos;
+  fijarPuestos();
   E.notas = d.notas || {}; E.restricciones = d.restricciones || {};
   E.enviados = d.enviados || {};
   // mesActual queda como está: qué mes mirás es navegación, no un cambio que deshacer.
@@ -1538,6 +1622,29 @@ document.addEventListener("click", ev => {
       ? E.config.dias.filter(x => x !== d) : E.config.dias.concat(d).sort();
     marcarSucio(); render(); return;
   }
+  if(t.id === "btn-sumar-puesto"){
+    let n = PUESTOS.length + 1, id;
+    do { id = "puesto-" + n++; } while(PUESTOS.some(x => x.id === id));
+    PUESTOS.push({id:id, label:"Puesto nuevo", emoji:"•", cupo:1,
+                  color:PALETA_PUESTOS[PUESTOS.length % PALETA_PUESTOS.length]});
+    Object.values(E.plannings).forEach(pl => pl.fechas.forEach(f => { f.puestos[id] = [null]; }));
+    marcarSucio(); render();
+    const campos = document.querySelectorAll(".puesto-cfg .rotulo");
+    const ultimo = campos[campos.length-1];
+    if(ultimo){ ultimo.focus(); ultimo.select(); }
+    return;
+  }
+  if(t.dataset.borrarPuesto !== undefined){
+    const i = Number(t.dataset.borrarPuesto), pu = PUESTOS[i];
+    if(PUESTOS.length === 1) return brindis("Tiene que quedar al menos un puesto.");
+    if(!confirm("¿Quitar «" + pu.label + "»? Se borra de todas las fechas de todos los meses."))
+      return;
+    PUESTOS.splice(i, 1);
+    Object.values(E.plannings).forEach(pl => pl.fechas.forEach(f => { delete f.puestos[pu.id]; }));
+    E.equipo.forEach(p => { p.puestos = p.puestos.filter(x => x !== pu.id); });
+    marcarSucio(); render();
+    return;
+  }
   if(t.id === "btn-sumar"){
     let n = 1, id;
     do { id = "persona-" + n++; } while(persona(id));
@@ -1586,6 +1693,28 @@ document.addEventListener("change", ev => {
   }
   if(el.id === "tarde-excl"){ E.config.tardeExclusiva = el.checked; marcarSucio(); render(); return; }
   if(el.dataset.campo === "nombre" && retrato() !== instantanea) marcarSucio();
+  const cfg = el.closest && el.closest(".puesto-cfg");
+  if(cfg){
+    const pu = PUESTOS[Number(cfg.dataset.puestoIdx)];
+    if(!pu) return;
+    if(el.dataset.campo === "color"){ pu.color = el.value; marcarSucio(); render(); return; }
+    if(el.dataset.campo === "otro-turno"){
+      pu.otroTurno = el.checked; marcarSucio(); render(); return;
+    }
+    if(el.dataset.campo === "cupo"){
+      const n = Math.max(1, Math.min(6, Number(el.value) || 1));
+      pu.cupo = n;
+      // Las fechas ya guardadas se ajustan al cupo nuevo, sin perder lo asignado.
+      Object.values(E.plannings).forEach(pl => pl.fechas.forEach(f => {
+        const hay = f.puestos[pu.id] || [];
+        f.puestos[pu.id] = Array.from({length:n}, (_, i) => hay[i] || null);
+      }));
+      marcarSucio(); render(); return;
+    }
+    if(el.dataset.campo === "puesto-nombre" && pu.label !== el.value){
+      pu.label = el.value || "Sin nombre"; marcarSucio(); render(); return;
+    }
+  }
   if(el.id === "notas-mes"){
     const {anio, mes} = mesVigente();
     E.notas = E.notas || {};
@@ -1595,7 +1724,14 @@ document.addEventListener("change", ev => {
 });
 
 document.addEventListener("input", ev => {
-  // El nombre se edita sin re-renderizar, para no perder el cursor a mitad de palabra.
+  // Igual que el nombre de una persona: el rótulo del puesto se guarda al salir
+  // del campo, así no se pierde el cursor a mitad de palabra.
+  if(ev.target.dataset.campo === "puesto-nombre"){
+    const cfg = ev.target.closest(".puesto-cfg");
+    const pu = cfg && PUESTOS[Number(cfg.dataset.puestoIdx)];
+    if(pu){ pu.label = ev.target.value || "Sin nombre"; if(!sucio) sucio = true; }
+    return;
+  }
   if(ev.target.dataset.campo !== "nombre") return;
   const p = persona(ev.target.closest(".persona").dataset.id);
   if(!p) return;
@@ -1632,7 +1768,7 @@ async function copiar(txt){
 /* ═══ Guardado ═════════════════════════════════════════════════════ */
 
 function documentoCompleto(){
-  const limpio = {equipo:E.equipo, config:E.config, plannings:{}, mesActual:E.mesActual,
+  const limpio = {equipo:E.equipo, puestos:E.puestos, config:E.config, plannings:{}, mesActual:E.mesActual,
                   notas:E.notas || {}, restricciones:E.restricciones || {},
                   enviados:E.enviados || {}};
   // Los meses que solo se hojearon quedan vacíos: no se guardan.
@@ -1685,7 +1821,7 @@ function bajarArchivo(blob, nombre){
 /* ═══ Copia de seguridad ═══════════════════════════════════════════ */
 
 async function exportarDatos(){
-  const json = JSON.stringify({equipo:E.equipo, config:E.config, plannings:E.plannings,
+  const json = JSON.stringify({equipo:E.equipo, puestos:E.puestos, config:E.config, plannings:E.plannings,
                                notas:E.notas || {}, restricciones:E.restricciones || {},
                                enviados:E.enviados || {}}, null, 2);
   const nombre = "megafonia-datos.json";
@@ -1714,6 +1850,7 @@ function importarDatos(archivo){
                 "(" + d.equipo.length + " personas). Podés deshacerlo con ↶. ¿Seguimos?")) return;
     restaurar(JSON.stringify({
       equipo: d.equipo,
+      puestos: Array.isArray(d.puestos) && d.puestos.length ? d.puestos : E.puestos,
       config: d.config && Array.isArray(d.config.dias) ? d.config : E.config,
       plannings: d.plannings && typeof d.plannings === "object" ? d.plannings : {},
       notas: d.notas && typeof d.notas === "object" ? d.notas : {},
@@ -1768,7 +1905,11 @@ if(window.claude && window.claude.use){
   claude.use("artifact")
     .then(cap => { capArtifact = cap; if(!cap) pasarASoloLectura(); })
     .catch(() => pasarASoloLectura());
+  claude.use("sample")
+    .then(cap => { capSample = cap || null; render(); })
+    .catch(() => { capSample = null; render(); });
 }else{
+  capSample = null;
   arrancarModoLocal();          // archivo abierto en tu Mac: guarda en este navegador
 }
 </script>

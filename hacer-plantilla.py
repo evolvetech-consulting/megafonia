@@ -60,11 +60,23 @@ def main():
     datos = json.dumps(EJEMPLO, ensure_ascii=False, indent=2)
     salida = re.sub(PATRON, lambda m: m.group(1) + datos + m.group(3), fuente, count=1, flags=re.S)
 
-    # Red de seguridad: ningún nombre real puede quedar en lo que se publica.
+    # Red de seguridad: ni el nombre completo ni sus partes sueltas. Una vez se
+    # coló un nombre de pila en un texto de ejemplo porque solo se buscaba el nombre
+    # entero; desde entonces se revisa también cada palabra por separado.
     reales = [p["nombre"] for p in json.loads(re.search(PATRON, fuente, re.S).group(2))["equipo"]]
-    filtrados = [n for n in reales if n and n in salida]
+    piezas = set()
+    for nombre in reales:
+        if not nombre:
+            continue
+        piezas.add(nombre)
+        for parte in nombre.split():
+            if len(parte) > 3 and parte.lower() not in ("de", "del", "la", "las", "los"):
+                piezas.add(parte)
+    # Palabras completas: "Ilia" no debe saltar por la palabra "familia".
+    filtrados = sorted(p for p in piezas
+                       if re.search(r"(?<![\w])" + re.escape(p) + r"(?![\w])", salida, re.I))
     if filtrados:
-        sys.exit("ABORTADO: estos nombres siguen apareciendo en la plantilla: " + ", ".join(filtrados))
+        sys.exit("ABORTADO: esto sigue apareciendo en la plantilla: " + ", ".join(filtrados))
 
     io.open(DESTINO, "w", encoding="utf-8").write(envolver(salida))
     print(f"{DESTINO.name} generado — equipo de ejemplo ({len(EJEMPLO['equipo'])} personas), "
