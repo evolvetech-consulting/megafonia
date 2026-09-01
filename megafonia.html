@@ -667,9 +667,22 @@ const logoSVG = color =>
 
 // Los iconos de la pantalla de inicio: se leen del head para reponerlos tal
 // cual cuando la página se vuelve a publicar a sí misma.
-const ICONOS = Array.from(document.querySelectorAll(
-    'link[rel="apple-touch-icon"], link[rel="icon"], meta[name^="apple-mobile"], meta[name="theme-color"]'))
-  .map(el => el.outerHTML).join("\n") + "\n";
+// Al publicar desde fuera, el visor envuelve la página y estas etiquetas
+// quedan en el cuerpo, donde iOS no las mira: al agregar a la pantalla de
+// inicio usaba el favicon genérico. Se mudan a la cabecera apenas carga, que
+// es el DOM que Safari lee en ese momento.
+const ICONOS = (function(){
+  const sel = 'link[rel="apple-touch-icon"], link[rel="icon"], ' +
+              'meta[name^="apple-mobile"], meta[name="theme-color"]';
+  const etiquetas = Array.from(document.querySelectorAll(sel));
+  etiquetas.forEach(el => {
+    if(el.parentElement !== document.head) document.head.appendChild(el);
+  });
+  // El título también: iOS lo propone como nombre del acceso directo.
+  const titulo = document.querySelector("title");
+  if(titulo && titulo.parentElement !== document.head) document.head.appendChild(titulo);
+  return etiquetas.map(el => el.outerHTML).join("\n") + "\n";
+})();
 
 const E = JSON.parse(document.getElementById("estado").textContent);
 
