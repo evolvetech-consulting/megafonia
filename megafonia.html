@@ -151,6 +151,45 @@ select.asig:hover{border-color:var(--linea); background-color:var(--panel2)}
 select.asig.vacio{color:var(--tenue); font-style:italic}
 select.asig option{background:var(--panel); color:var(--tinta); font-style:normal}
 
+/* ── Disponibilidad del mes ───────────────────────────── */
+.tarjeta.disponibilidad{border-left:3px solid var(--acento)}
+textarea.notas{
+  width:100%; background:var(--panel2); border:1px solid var(--linea);
+  border-radius:var(--r); padding:12px 14px; font-size:14.5px; line-height:1.55;
+  resize:vertical; min-height:74px;
+}
+textarea.notas:focus{border-color:var(--acento); background:var(--panel)}
+.reglas{display:flex; flex-wrap:wrap; gap:7px; margin-top:15px}
+.regla{
+  display:inline-flex; align-items:center; gap:3px; background:var(--acento-suave);
+  border:1px solid color-mix(in srgb, var(--acento) 35%, transparent);
+  border-radius:20px; padding:5px 6px 5px 13px; font-size:13px;
+}
+.regla b{font-weight:500; color:var(--acento)}
+.regla .quitar{
+  background:none; border:0; cursor:pointer; color:var(--acento); opacity:.6;
+  padding:2px 6px; border-radius:50%; font-size:12px; line-height:1;
+}
+.regla .quitar:hover{opacity:1; background:color-mix(in srgb, var(--acento) 18%, transparent)}
+details.a-mano{margin-top:16px; border-top:1px solid var(--linea); padding-top:13px}
+details.a-mano summary{
+  cursor:pointer; color:var(--suave); font-size:13.5px; list-style:none;
+  display:flex; align-items:center; gap:6px;
+}
+details.a-mano summary::-webkit-details-marker{display:none}
+details.a-mano summary::before{content:"＋"; font-size:14px; color:var(--tenue)}
+details[open].a-mano summary::before{content:"−"}
+details.a-mano summary:hover{color:var(--tinta)}
+.fila-mano{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:13px}
+.fila-mano select, .fila-mano input{
+  background:var(--panel2); border:1px solid var(--linea); color:var(--tinta);
+  border-radius:8px; padding:7px 10px; font-size:14px;
+}
+.fila-mano select{cursor:pointer}
+.fila-mano input{width:110px}
+.fila-mano select:focus, .fila-mano input:focus{border-color:var(--acento)}
+.aviso.doble li .porque{color:var(--suave)}
+
 /* ── Reparto ──────────────────────────────────────────── */
 .tarjeta{
   background:var(--panel); border:1px solid var(--linea); border-radius:var(--r);
@@ -285,6 +324,7 @@ select.asig.chocado{
   .persona{grid-template-columns:1fr auto}
   .persona .chips{grid-column:1/-1}
   .rejilla{grid-template-columns:1fr}
+  .fila-mano select, .fila-mano input{flex:1; min-width:120px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
 </style>
@@ -441,6 +481,36 @@ function fechasDelMes(anio, mes){
   }
   return out;
 }
+/* ═══ Disponibilidad del mes ═══════════════════════════════════════
+   Una restricción dice cuándo puede una persona en UN mes concreto:
+     {id, tipo:"solo"|"no", dias:[5,12], texto:"la frase que la originó"}
+   "solo" = únicamente esas fechas. "no" = esas fechas no.
+   Son del mes, no del equipo: en octubre se arranca de cero.        */
+
+function restriccionesDe(clave){
+  if(!E.restricciones) E.restricciones = {};
+  if(!E.restricciones[clave]) E.restricciones[clave] = [];
+  return E.restricciones[clave];
+}
+function notaDe(clave){
+  if(!E.notas) E.notas = {};
+  return E.notas[clave] || "";
+}
+function puedeEse(idPersona, dia, restricciones){
+  for(const r of restricciones){
+    if(r.id !== idPersona) continue;
+    if(r.tipo === "solo" && !r.dias.includes(dia)) return false;
+    if(r.tipo === "no"   &&  r.dias.includes(dia)) return false;
+  }
+  return true;
+}
+function resumenRestriccion(r){
+  const dias = r.dias.slice().sort((a,b) => a-b).join(", ");
+  return (nombreDe(r.id) || "?") + (r.tipo === "solo"
+    ? (r.dias.length ? " · solo el " + dias : " · no puede ningún día")
+    : " · no puede el " + dias);
+}
+
 function planningDe(anio, mes){
   const clave = claveMes(anio, mes);
   const fechas = fechasDelMes(anio, mes);
@@ -481,7 +551,7 @@ function historialPrevio(claveActual){
   });
   return conteo;
 }
-function intento(fechas, gente, historial, azar){
+function intento(fechas, gente, historial, azar, restricciones){
   const vecesMes = {}, vecesPuesto = {}, ultima = {};
   gente.forEach(p => { vecesMes[p.id] = 0; vecesPuesto[p.id] = {}; });
   let huecos = 0;
@@ -492,7 +562,8 @@ function intento(fechas, gente, historial, azar){
         const esTarde = pu.id === "tarde";
         const vetados = (esTarde && !E.config.tardeExclusiva)
           ? enTarde : new Set([...enManana, ...enTarde]);
-        const candidatos = gente.filter(p => p.puestos.includes(pu.id) && !vetados.has(p.id));
+        const candidatos = gente.filter(p => p.puestos.includes(pu.id) && !vetados.has(p.id)
+                                          && puedeEse(p.id, f.dia, restricciones));
         if(!candidatos.length){ huecos++; return null; }
         let mejor = null, mejorCosto = Infinity;
         for(const p of candidatos){
@@ -531,9 +602,10 @@ function generar(){
   if(!fechas.length) return brindis("No hay fechas de servicio este mes. Revisá los días en Equipo.");
   if(!gente.length)  return brindis("No hay nadie activo en el equipo.");
   const historial = historialPrevio(claveMes(anio, mes));
+  const restricciones = restriccionesDe(claveMes(anio, mes));
   let mejor = null;
   for(let s=0; s<3000; s++){
-    const r = intento(fechas, gente, historial, rng(s));
+    const r = intento(fechas, gente, historial, rng(s), restricciones);
     if(!mejor || r.costo < mejor.costo) mejor = r;
   }
   E.plannings[claveMes(anio, mes)] = {fechas:mejor.plan};
@@ -638,7 +710,15 @@ function render(){
 // puesto habilitado pero no por esto, así que a mano se puede armar sin querer.
 function choques(plan){
   const salida = [];
+  const {anio, mes} = mesVigente();
+  const restricciones = restriccionesDe(claveMes(anio, mes));
   plan.fechas.forEach(f => {
+    // Alguien asignado a un día que sus notas de disponibilidad excluyen.
+    PUESTOS.forEach(pu => f.puestos[pu.id].forEach(id => {
+      if(id && !puedeEse(id, f.dia, restricciones))
+        salida.push({dia:f.dia, dow:f.dow, id:id, disponibilidad:true,
+                     motivo:"est\u00e1 en " + pu.label.toLowerCase() + " pero anotaste que ese d\u00eda no puede"});
+    }));
     const manana = new Map();          // id -> puestos de la mañana que ocupa
     PUESTOS.forEach(pu => {
       if(pu.id === "tarde") return;
@@ -703,8 +783,57 @@ function vistaPlanning(plan, activos){
         : 'Nadie puede estar en dos puestos a la vez: cambiá uno de los dos.') +
       '</div></div>' : "";
 
-  return avisoHuecos + avisoDobles +
+  return panelDisponibilidad() + avisoHuecos + avisoDobles +
     '<div class="rejilla">' + tarjetas + '</div>' + panelReparto(plan);
+}
+
+function panelDisponibilidad(){
+  const {anio, mes} = mesVigente();
+  const clave = claveMes(anio, mes);
+  const reglas = restriccionesDe(clave);
+  const activos = E.equipo.filter(p => p.activo);
+
+  const fichas = reglas.map((r, i) =>
+    '<span class="regla" title="' + esc(r.texto || "") + '">' +
+      '<b>' + esc(resumenRestriccion(r)) + '</b>' +
+      (soloLectura ? "" : '<button class="quitar" data-regla="' + i + '" aria-label="Quitar">✕</button>') +
+    '</span>').join("");
+
+  const opcionesGente = activos.map(p =>
+    '<option value="' + p.id + '">' + esc(p.nombre) + '</option>').join("");
+
+  return '<section class="tarjeta disponibilidad" style="margin-top:0">' +
+    '<h2>Quién no puede este mes</h2>' +
+    (soloLectura ? "" :
+      '<textarea id="notas-mes" class="notas" spellcheck="false" rows="3" ' +
+        'placeholder="Escribilo como se lo dirías a alguien:&#10;' +
+        'Illia H. este mes solo puede el sábado 12&#10;' +
+        'Damaris no está el 26">' + esc(notaDe(clave)) + '</textarea>' +
+      '<div class="acciones" style="margin-top:10px; flex-wrap:wrap">' +
+        '<button class="btn primario" id="btn-interpretar">Interpretar el texto</button>' +
+        '<span style="color:var(--suave);font-size:13px">Lo lee Claude y lo convierte en reglas, ' +
+          'que podés revisar acá abajo antes de generar.</span>' +
+      '</div>') +
+    (reglas.length
+      ? '<div class="reglas">' + fichas + '</div>'
+      : '<p style="color:var(--tenue);font-size:13.5px;margin:14px 0 0">' +
+        'Sin restricciones: el generador puede usar a cualquiera en cualquier fecha.</p>') +
+    (soloLectura ? "" :
+      '<details class="a-mano"><summary>Cargar una a mano</summary>' +
+        '<div class="fila-mano">' +
+          '<select id="r-quien" aria-label="Persona"><option value="">Elegí a alguien…</option>' +
+            opcionesGente + '</select>' +
+          '<select id="r-tipo" aria-label="Tipo">' +
+            '<option value="solo">solo puede el…</option>' +
+            '<option value="no">no puede el…</option></select>' +
+          '<input id="r-dias" type="text" inputmode="numeric" placeholder="12, 19" aria-label="Días">' +
+          '<button class="btn" id="btn-regla">Agregar</button>' +
+        '</div>' +
+        '<p style="color:var(--tenue);font-size:13px;margin:10px 0 0">' +
+        'Los días son del mes que estás viendo. «Solo puede» sin ningún día ' +
+        'quiere decir que no puede en todo el mes.</p>' +
+      '</details>') +
+  '</section>';
 }
 
 function selectorAsig(dia, puesto, idx, asignado, activos, chocado){
@@ -957,16 +1086,134 @@ async function descargarImagen(){
   }
 }
 
+/* ═══ Interpretar las notas ════════════════════════════════════════ */
+
+// Convierte lo que se escribe en el recuadro en restricciones con forma.
+// Lo que Claude devuelve NO se aplica a ciegas: se valida contra el equipo
+// y las fechas reales, y queda a la vista para que lo revises o lo borres.
+function validarRestricciones(crudas, fechas){
+  if(!Array.isArray(crudas)) return [];
+  const dias = fechas.map(f => f.dia);
+  const salida = [];
+  crudas.forEach(r => {
+    if(!r || typeof r !== "object") return;
+    if(!persona(r.id)) return;                                  // alguien que no está en el equipo
+    if(r.tipo !== "solo" && r.tipo !== "no") return;
+    const propios = (Array.isArray(r.dias) ? r.dias : [])
+      .map(Number).filter(d => dias.includes(d));
+    if(r.tipo === "no" && !propios.length) return;               // un "no puede" sin días no dice nada
+    salida.push({id:r.id, tipo:r.tipo, dias:propios,
+                 texto:typeof r.texto === "string" ? r.texto.slice(0, 200) : ""});
+  });
+  return salida;
+}
+
+function promptDisponibilidad(texto, fechas, anio, mes){
+  const gente = E.equipo.filter(p => p.activo)
+    .map(p => "  " + p.id + " = " + p.nombre).join("\n");
+  const dias = fechas.map(f => DIAS_SEM[f.dow].toLowerCase() + " " + f.dia).join(", ");
+  return [
+    "Convertí notas de disponibilidad de un equipo en datos con forma.",
+    "",
+    "EQUIPO (identificador = nombre):",
+    gente,
+    "",
+    "FECHAS DE SERVICIO DE " + MESES[mes].toUpperCase() + " " + anio + ": " + dias,
+    "",
+    "NOTAS ESCRITAS POR EL DIRECTOR DEL EQUIPO:",
+    '"""',
+    texto,
+    '"""',
+    "",
+    "Respondé SOLO con un array JSON. Cada elemento:",
+    '{"id": "<identificador exacto del equipo>", "tipo": "solo" | "no", ' +
+      '"dias": [<números de día>], "texto": "<la frase original que lo dice>"}',
+    "",
+    '- "solo" = esa persona ÚNICAMENTE puede esas fechas del mes.',
+    '- "no"   = esa persona NO puede esas fechas.',
+    "- Usá los identificadores tal cual figuran arriba, nunca el nombre.",
+    "- Los días son números de las fechas de servicio listadas, nada más.",
+    "- Los nombres pueden venir abreviados o mal escritos: emparejalos con el más parecido.",
+    "  Si una frase no señala claramente a alguien del equipo, omitila.",
+    '- Si alguien no puede en todo el mes, devolvé {"tipo":"solo","dias":[]}.',
+    "- Una frase por persona; si una nota habla de dos personas, devolvé dos elementos.",
+    "",
+    'Ejemplo: [{"id":"illia-h","tipo":"solo","dias":[12],"texto":"Illia H. este mes solo el sábado 12"}]',
+    "",
+    "Si las notas están vacías o no dicen nada sobre disponibilidad, respondé []."
+  ].join("\n");
+}
+
+async function interpretarNotas(){
+  const {anio, mes} = mesVigente();
+  const clave = claveMes(anio, mes);
+  const caja = $("#notas-mes");
+  const texto = (caja ? caja.value : notaDe(clave)).trim();
+  if(!texto) return brindis("Escribí primero quién no puede y cuándo.");
+
+  const btn = $("#btn-interpretar");
+  const antes = btn ? btn.textContent : "";
+  if(btn){ btn.disabled = true; btn.textContent = "Leyendo…"; }
+  const listo = () => { if(btn){ btn.disabled = false; btn.textContent = antes; } };
+
+  try{
+    const sample = window.claude && claude.use ? await claude.use("sample") : null;
+    if(!sample){ listo(); return brindis("Interpretar el texto solo funciona en la copia del enlace."); }
+
+    const fechas = fechasDelMes(anio, mes);
+    const crudas = await sample.json(promptDisponibilidad(texto, fechas, anio, mes),
+                                     {modelTier:"default"});
+    const buenas = validarRestricciones(crudas, fechas);
+
+    E.notas = E.notas || {}; E.notas[clave] = texto;
+    E.restricciones = E.restricciones || {};
+    E.restricciones[clave] = buenas;
+    marcarSucio(); listo(); render();
+
+    if(!buenas.length) return brindis("No encontré ninguna restricción en ese texto.");
+    const perdidas = Array.isArray(crudas) ? crudas.length - buenas.length : 0;
+    brindis(buenas.length + (buenas.length === 1 ? " restricción anotada" : " restricciones anotadas") +
+            (perdidas > 0 ? " (descarté " + perdidas + " que no pude identificar)" : ""));
+  }catch(err){
+    listo();
+    const code = (err && err.code) || "upstream_error";
+    if(code === "cancelled") return;
+    if(code === "not_granted" || code === "sampling_disabled" || code === "not_declared")
+      return brindis("No diste permiso para consultar a Claude. Podés cargarlas a mano.");
+    if(code === "rate_limited")  return brindis("Demasiadas consultas seguidas. Esperá un momento.");
+    if(code === "invalid_json")  return brindis("No entendí la respuesta. Probá con frases más cortas.");
+    if(code === "prompt_too_large") return brindis("El texto es muy largo. Acortalo.");
+    brindis("No se pudo interpretar el texto. Podés cargar las restricciones a mano.");
+  }
+}
+
+function agregarRestriccionManual(){
+  const {anio, mes} = mesVigente();
+  const clave = claveMes(anio, mes);
+  const quien = $("#r-quien"), tipo = $("#r-tipo"), dias = $("#r-dias");
+  if(!quien || !quien.value) return brindis("Elegí a quién le corresponde.");
+  const fechas = fechasDelMes(anio, mes).map(f => f.dia);
+  const pedidos = (dias.value.match(/\d+/g) || []).map(Number).filter(d => fechas.includes(d));
+  if(tipo.value === "no" && !pedidos.length)
+    return brindis("Poné qué días no puede, separados por coma.");
+  restriccionesDe(clave).push({id:quien.value, tipo:tipo.value, dias:pedidos, texto:""});
+  dias.value = "";
+  marcarSucio(); render();
+  brindis("Restricción anotada");
+}
+
 /* ═══ Deshacer / rehacer ═══════════════════════════════════════════ */
 
 const TOPE_HISTORIAL = 60;
 let pilaUndo = [], pilaRedo = [], instantanea = "", ultimoGuardado = "";
 
-const retrato = () => JSON.stringify({equipo:E.equipo, config:E.config, plannings:E.plannings});
+const retrato = () => JSON.stringify({equipo:E.equipo, config:E.config, plannings:E.plannings,
+                                      notas:E.notas || {}, restricciones:E.restricciones || {}});
 
 function restaurar(snap){
   const d = JSON.parse(snap);
   E.equipo = d.equipo; E.config = d.config; E.plannings = d.plannings;
+  E.notas = d.notas || {}; E.restricciones = d.restricciones || {};
   // mesActual queda como está: qué mes mirás es navegación, no un cambio que deshacer.
 }
 function recalcularSucio(){ sucio = instantanea !== ultimoGuardado; }
@@ -1036,6 +1283,13 @@ document.addEventListener("click", ev => {
   }
   if(t.id === "btn-deshacer") return deshacer();
   if(t.id === "btn-rehacer") return rehacer();
+  if(t.id === "btn-interpretar") return interpretarNotas();
+  if(t.id === "btn-regla") return agregarRestriccionManual();
+  if(t.dataset.regla !== undefined){
+    const {anio, mes} = mesVigente();
+    restriccionesDe(claveMes(anio, mes)).splice(Number(t.dataset.regla), 1);
+    marcarSucio(); render(); return;
+  }
   if(t.id === "btn-generar") return generar();
   if(t.id === "btn-guardar") return guardar();
 
@@ -1103,6 +1357,12 @@ document.addEventListener("change", ev => {
   }
   if(el.id === "tarde-excl"){ E.config.tardeExclusiva = el.checked; marcarSucio(); render(); return; }
   if(el.dataset.campo === "nombre" && retrato() !== instantanea) marcarSucio();
+  if(el.id === "notas-mes"){
+    const {anio, mes} = mesVigente();
+    E.notas = E.notas || {};
+    const clave = claveMes(anio, mes);
+    if((E.notas[clave] || "") !== el.value){ E.notas[clave] = el.value; marcarSucio(); }
+  }
 });
 
 document.addEventListener("input", ev => {
@@ -1143,7 +1403,8 @@ async function copiar(txt){
 /* ═══ Guardado ═════════════════════════════════════════════════════ */
 
 function documentoCompleto(){
-  const limpio = {equipo:E.equipo, config:E.config, plannings:{}, mesActual:E.mesActual};
+  const limpio = {equipo:E.equipo, config:E.config, plannings:{}, mesActual:E.mesActual,
+                  notas:E.notas || {}, restricciones:E.restricciones || {}};
   // Los meses que solo se hojearon quedan vacíos: no se guardan.
   Object.keys(E.plannings).forEach(clave => {
     const pl = E.plannings[clave];
@@ -1194,7 +1455,8 @@ function bajarArchivo(blob, nombre){
 /* ═══ Copia de seguridad ═══════════════════════════════════════════ */
 
 async function exportarDatos(){
-  const json = JSON.stringify({equipo:E.equipo, config:E.config, plannings:E.plannings}, null, 2);
+  const json = JSON.stringify({equipo:E.equipo, config:E.config, plannings:E.plannings,
+                               notas:E.notas || {}, restricciones:E.restricciones || {}}, null, 2);
   const nombre = "megafonia-datos.json";
   if(modoLocal){ bajarArchivo(new Blob([json], {type:"application/json"}), nombre);
                  return brindis("Datos exportados"); }
@@ -1222,7 +1484,9 @@ function importarDatos(archivo){
     restaurar(JSON.stringify({
       equipo: d.equipo,
       config: d.config && Array.isArray(d.config.dias) ? d.config : E.config,
-      plannings: d.plannings && typeof d.plannings === "object" ? d.plannings : {}
+      plannings: d.plannings && typeof d.plannings === "object" ? d.plannings : {},
+      notas: d.notas && typeof d.notas === "object" ? d.notas : {},
+      restricciones: d.restricciones && typeof d.restricciones === "object" ? d.restricciones : {}
     }));
     marcarSucio(); render();
     brindis("Datos importados: tocá Guardar para conservarlos");
