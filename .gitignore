@@ -13,3 +13,4 @@ megafonia-datos*.json
 
 # macOS
 .DS_Store
+megafonia-local.html

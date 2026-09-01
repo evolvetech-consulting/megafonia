@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Consola de Megafonía</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style id="css">
@@ -283,7 +288,8 @@ select.asig.chocado{
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
 </style>
-
+</head>
+<body>
 <script type="application/json" id="estado">
 {
   "equipo": [
@@ -403,7 +409,14 @@ const E = JSON.parse(document.getElementById("estado").textContent);
 const FUENTE_CSS = document.getElementById("css").textContent;
 const FUENTE_JS  = document.getElementById("app").textContent;
 const RAIZ = document.createElement("div");
-document.body.appendChild(RAIZ);
+// Abierto como archivo suelto, este script corre con el parser todavía en <head>
+// y document.body no existe: se monta en cuanto el documento termine de cargar.
+function montarRaiz(){
+  if(RAIZ.isConnected) return;
+  if(document.body) document.body.appendChild(RAIZ);
+  else document.addEventListener("DOMContentLoaded", montarRaiz, {once:true});
+}
+montarRaiz();
 let sucio = false, vista = "planning", tipoMsj = "planning", soloLectura = false,
     capArtifact = null, modoLocal = false;
 const LLAVE_LOCAL = "megafonia:estado";
@@ -1263,3 +1276,5 @@ if(window.claude && window.claude.use){
   arrancarModoLocal();          // archivo abierto en tu Mac: guarda en este navegador
 }
 </script>
+</body>
+</html>

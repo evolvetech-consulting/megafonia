@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Genera megafonia.html: la app con un equipo de ejemplo, sin los datos reales.
+"""Arma los dos HTML que se abren con doble clic, a partir de app.html.
 
-app.html lleva adentro el equipo y los plannings de la iglesia, así que no se
-publica. Esta plantilla tiene el mismo código y un equipo inventado; los datos
-de verdad viven en el enlace privado y en el navegador de cada uno.
+  megafonia.html        equipo de ejemplo, es el que va al repo público
+  megafonia-local.html  con el equipo real, queda fuera de git
+
+app.html no sirve para abrir directo: no lleva <html>/<head>/<body> porque el
+visor de artifacts se los pone. Un navegador que abre ese archivo se queda
+parseando dentro de <head> y la página sale en blanco. Acá se envuelve en un
+documento completo, con doctype, para que funcione con doble clic.
 
     python3 hacer-plantilla.py
 """
@@ -17,6 +21,7 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent
 ORIGEN = BASE / "app.html"
 DESTINO = BASE / "megafonia.html"
+LOCAL = BASE / "megafonia-local.html"
 PATRON = r'(<script type="application/json" id="estado">\n?)(.*?)(\n?</script>)'
 
 EJEMPLO = {
@@ -35,6 +40,16 @@ EJEMPLO = {
 }
 
 
+def envolver(fragmento):
+    """app.html es un fragmento; acá se convierte en un documento HTML válido."""
+    corte = fragmento.index('<script type="application/json"')
+    cabeza, cuerpo = fragmento[:corte].rstrip(), fragmento[corte:].strip()
+    return ('<!doctype html>\n<html lang="es">\n<head>\n'
+            '<meta charset="utf-8">\n'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            + cabeza + '\n</head>\n<body>\n' + cuerpo + '\n</body>\n</html>\n')
+
+
 def main():
     if not ORIGEN.exists():
         sys.exit(f"No encuentro {ORIGEN.name}.")
@@ -51,10 +66,14 @@ def main():
     if filtrados:
         sys.exit("ABORTADO: estos nombres siguen apareciendo en la plantilla: " + ", ".join(filtrados))
 
-    io.open(DESTINO, "w", encoding="utf-8").write(salida)
-    print(f"{DESTINO.name} generado ({len(salida)} bytes)")
-    print(f"Equipo de ejemplo: {len(EJEMPLO['equipo'])} personas, sin plannings.")
-    print(f"Verificado: ninguno de los {len(reales)} nombres reales aparece en el archivo.")
+    io.open(DESTINO, "w", encoding="utf-8").write(envolver(salida))
+    print(f"{DESTINO.name} generado — equipo de ejemplo ({len(EJEMPLO['equipo'])} personas), "
+          f"sin plannings.")
+    print(f"  verificado: ninguno de los {len(reales)} nombres reales aparece en el archivo.")
+
+    io.open(LOCAL, "w", encoding="utf-8").write(envolver(fuente))
+    print(f"{LOCAL.name} generado — con tu equipo real, excluido de git.")
+    print("  este es el que se abre con doble clic desde el Escritorio.")
 
 
 if __name__ == "__main__":
