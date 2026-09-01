@@ -62,9 +62,14 @@ button,input,select,textarea{font:inherit; color:inherit}
 .tope{
   position:sticky; top:0; z-index:20; background:var(--panel);
   border-bottom:1px solid var(--linea);
+  /* Abierta como app en el iPhone, la página arranca pegada al borde de arriba
+     y el título quedaba tapado por el reloj. El panel se estira por debajo de
+     la barra de estado y empuja el contenido a la zona segura. */
+  padding-top:env(safe-area-inset-top);
 }
 .tope-fila{
-  max-width:100%; width:1180px; margin:0 auto; padding:14px 20px;
+  max-width:100%; width:1180px; margin:0 auto;
+  padding:14px calc(20px + env(safe-area-inset-right)) 14px calc(20px + env(safe-area-inset-left));
   display:flex; align-items:center; gap:16px; flex-wrap:wrap;
 }
 .marca{display:flex; align-items:center; gap:10px; margin-right:auto}
@@ -141,7 +146,11 @@ label.btn{display:inline-block; line-height:1.5}
 .pestanas button:hover{color:var(--tinta)}
 .pestanas button[aria-selected="true"]{color:var(--acento); border-bottom-color:var(--acento)}
 
-main{max-width:100%; width:1180px; margin:0 auto; padding:24px 20px 260px}
+main{
+  max-width:100%; width:1180px; margin:0 auto;
+  padding:24px calc(20px + env(safe-area-inset-right))
+          calc(260px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+}
 .vista[hidden]{display:none}
 
 /* ── Tarjetas de fecha ────────────────────────────────── */
