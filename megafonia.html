@@ -877,8 +877,10 @@ function vistaPlanning(plan, activos){
   const tira = (avisoHuecos || avisoDobles)
     ? '<div class="tira-avisos">' + avisoHuecos + avisoDobles + '</div>' : "";
 
-  return panelDisponibilidad() +
-    '<div class="rejilla">' + tarjetas + '</div>' + tira + panelReparto(plan);
+  // El planning primero: es lo que se viene a mirar. Debajo, lo que se consulta
+  // de vez en cuando — la disponibilidad, los avisos y el reparto.
+  return '<div class="rejilla">' + tarjetas + '</div>' +
+    panelDisponibilidad() + tira + panelReparto(plan);
 }
 
 function panelDisponibilidad(){
@@ -896,7 +898,7 @@ function panelDisponibilidad(){
   const opcionesGente = activos.map(p =>
     '<option value="' + p.id + '">' + esc(p.nombre) + '</option>').join("");
 
-  return '<section class="tarjeta disponibilidad" style="margin-top:0">' +
+  return '<section class="tarjeta disponibilidad">' +
     '<h2>Quién no puede este mes</h2>' +
     (soloLectura ? "" :
       '<textarea id="notas-mes" class="notas" spellcheck="false" rows="3" ' +
