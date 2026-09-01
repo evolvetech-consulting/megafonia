@@ -60,6 +60,26 @@ button,input,select,textarea{font:inherit; color:inherit}
   text-transform:uppercase; color:var(--tenue); margin-top:3px;
 }
 .marca .logo{display:block; width:30px; height:30px; flex:none}
+.rotulo-equipo{min-width:0}
+#sel-equipo{
+  background:none; border:1px solid transparent; border-radius:8px;
+  font-family:Archivo,"Helvetica Neue",Arial,sans-serif; font-size:17px; font-weight:700;
+  letter-spacing:-.01em; color:var(--tinta); padding:2px 26px 2px 6px; margin-left:-6px;
+  cursor:pointer; appearance:none; max-width:min(58vw,300px);
+  text-overflow:ellipsis; white-space:nowrap; overflow:hidden;
+  background-image:linear-gradient(45deg,transparent 50%,var(--tenue) 50%),
+                   linear-gradient(135deg,var(--tenue) 50%,transparent 50%);
+  background-position:calc(100% - 13px) 56%, calc(100% - 9px) 56%;
+  background-size:4px 4px, 4px 4px; background-repeat:no-repeat;
+}
+#sel-equipo:hover{border-color:var(--linea); background-color:var(--panel2)}
+#sel-equipo option{background:var(--panel); color:var(--tinta); font-size:14px; font-weight:400}
+.fila-equipo{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.nombre-equipo{
+  flex:1; min-width:160px; background:var(--panel2); border:1px solid var(--linea);
+  border-radius:var(--r); padding:9px 12px; font-weight:500; font-size:15px;
+}
+.nombre-equipo:focus{border-color:var(--acento)}
 .marca .logo svg{display:block; width:100%; height:100%}
 
 .mes-nav{display:flex; align-items:center; gap:2px; background:var(--panel2);
@@ -514,17 +534,45 @@ const logoSVG = color =>
   '<path fill="' + color + '" transform="translate(-20.5,-20.6)" d="' + LOGO_D + '"/></svg>';
 
 const E = JSON.parse(document.getElementById("estado").textContent);
+
+// Varios equipos en la misma app: cada uno con su gente, sus puestos y sus
+// plannings. AC es el que se está viendo; todo el resto del código trabaja
+// contra él y no necesita saber que hay otros.
+let AC = null;
+function fijarActivo(){
+  if(!Array.isArray(E.equipos) || !E.equipos.length){
+    // Estado de cuando había un solo equipo: se envuelve sin perder nada.
+    E.equipos = [{
+      id: "equipo-1", nombre: "Megafonía",
+      puestos: E.puestos || [], gente: E.equipo || [],
+      config: E.config || {dias:[6], tardeExclusiva:true},
+      plannings: E.plannings || {}, notas: E.notas || {},
+      restricciones: E.restricciones || {}, enviados: E.enviados || {}
+    }];
+    ["puestos","equipo","config","plannings","notas","restricciones","enviados"]
+      .forEach(k => { delete E[k]; });
+  }
+  AC = E.equipos.find(t => t.id === E.equipoActual) || E.equipos[0];
+  E.equipoActual = AC.id;
+  if(!Array.isArray(AC.gente)) AC.gente = [];
+  if(!AC.config) AC.config = {dias:[6], tardeExclusiva:false};
+  if(!AC.plannings) AC.plannings = {};
+  if(!AC.notas) AC.notas = {};
+  if(!AC.restricciones) AC.restricciones = {};
+  if(!AC.enviados) AC.enviados = {};
+  fijarPuestos();
+}
 function fijarPuestos(){
-  if(!Array.isArray(E.puestos) || !E.puestos.length)
-    E.puestos = JSON.parse(JSON.stringify(PUESTOS_INICIALES));
-  E.puestos.forEach((p, i) => {          // completa lo que falte, sin pisar lo elegido
+  if(!Array.isArray(AC.puestos) || !AC.puestos.length)
+    AC.puestos = JSON.parse(JSON.stringify(PUESTOS_INICIALES));
+  AC.puestos.forEach((p, i) => {         // completa lo que falte, sin pisar lo elegido
     if(!p.color) p.color = PALETA_PUESTOS[i % PALETA_PUESTOS.length];
     if(!p.emoji) p.emoji = "•";
     if(!(p.cupo >= 1)) p.cupo = 1;
   });
-  PUESTOS = E.puestos;
+  PUESTOS = AC.puestos;
 }
-fijarPuestos();
+fijarActivo();
 // El CSS y este mismo script son el molde con el que la página se reconstruye al guardar.
 // Hay que leerlos ahora: el primer render los saca de vista.
 const FUENTE_CSS = document.getElementById("css").textContent;
@@ -548,7 +596,7 @@ const LLAVE_LOCAL = "megafonia:estado";
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const claveMes = (a,m) => a + "-" + String(m+1).padStart(2,"0");
-const persona  = id => E.equipo.find(p => p.id === id) || null;
+const persona  = id => AC.gente.find(p => p.id === id) || null;
 const nombreDe = id => (persona(id) || {}).nombre || "";
 
 function mesVigente(){
@@ -561,7 +609,7 @@ function fechasDelMes(anio, mes){
   const total = new Date(Date.UTC(anio, mes+1, 0)).getUTCDate(), out = [];
   for(let d=1; d<=total; d++){
     const dow = new Date(Date.UTC(anio, mes, d)).getUTCDay();
-    if(E.config.dias.includes(dow)) out.push({dia:d, dow:dow});
+    if(AC.config.dias.includes(dow)) out.push({dia:d, dow:dow});
   }
   return out;
 }
@@ -572,13 +620,13 @@ function fechasDelMes(anio, mes){
    Son del mes, no del equipo: en octubre se arranca de cero.        */
 
 function restriccionesDe(clave){
-  if(!E.restricciones) E.restricciones = {};
-  if(!E.restricciones[clave]) E.restricciones[clave] = [];
-  return E.restricciones[clave];
+  if(!AC.restricciones) AC.restricciones = {};
+  if(!AC.restricciones[clave]) AC.restricciones[clave] = [];
+  return AC.restricciones[clave];
 }
 function notaDe(clave){
-  if(!E.notas) E.notas = {};
-  return E.notas[clave] || "";
+  if(!AC.notas) AC.notas = {};
+  return AC.notas[clave] || "";
 }
 function puedeEse(idPersona, dia, restricciones){
   for(const r of restricciones){
@@ -598,8 +646,8 @@ function resumenRestriccion(r){
 function planningDe(anio, mes){
   const clave = claveMes(anio, mes);
   const fechas = fechasDelMes(anio, mes);
-  let plan = E.plannings[clave];
-  if(!plan) plan = E.plannings[clave] = {fechas:[]};
+  let plan = AC.plannings[clave];
+  if(!plan) plan = AC.plannings[clave] = {fechas:[]};
   // Sincroniza con el calendario: conserva lo asignado, suma o quita fechas.
   const previas = new Map(plan.fechas.map(f => [f.dia, f]));
   plan.fechas = fechas.map(f => {
@@ -627,9 +675,9 @@ function rng(semilla){
 }
 function historialPrevio(claveActual){
   const conteo = {};
-  Object.keys(E.plannings).forEach(clave => {
+  Object.keys(AC.plannings).forEach(clave => {
     if(clave === claveActual) return;
-    E.plannings[clave].fechas.forEach(f =>
+    AC.plannings[clave].fechas.forEach(f =>
       Object.values(f.puestos).forEach(slots =>
         slots.forEach(id => { if(id) conteo[id] = (conteo[id]||0) + 1; })));
   });
@@ -644,7 +692,7 @@ function intento(fechas, gente, historial, azar, restricciones){
     PUESTOS.forEach(pu => {
       puestos[pu.id] = Array.from({length:pu.cupo}, () => {
         const esTarde = pu.otroTurno === true;
-        const vetados = (esTarde && !E.config.tardeExclusiva)
+        const vetados = (esTarde && !AC.config.tardeExclusiva)
           ? enTarde : new Set([...enManana, ...enTarde]);
         const candidatos = gente.filter(p => p.puestos.includes(pu.id) && !vetados.has(p.id)
                                           && puedeEse(p.id, f.dia, restricciones));
@@ -682,7 +730,7 @@ function intento(fechas, gente, historial, azar, restricciones){
 function generar(){
   const {anio, mes} = mesVigente();
   const fechas = fechasDelMes(anio, mes);
-  const gente = E.equipo.filter(p => p.activo && p.puestos.length);
+  const gente = AC.gente.filter(p => p.activo && p.puestos.length);
   if(!fechas.length) return brindis("No hay fechas de servicio este mes. Revisá los días en Equipo.");
   if(!gente.length)  return brindis("No hay nadie activo en el equipo.");
   const historial = historialPrevio(claveMes(anio, mes));
@@ -692,7 +740,7 @@ function generar(){
     const r = intento(fechas, gente, historial, rng(s), restricciones);
     if(!mejor || r.costo < mejor.costo) mejor = r;
   }
-  E.plannings[claveMes(anio, mes)] = {fechas:mejor.plan};
+  AC.plannings[claveMes(anio, mes)] = {fechas:mejor.plan};
   marcarSucio(); render();
   brindis(mejor.huecos ? mejor.huecos + " puesto(s) sin cubrir: falta gente habilitada"
                        : "Planning generado");
@@ -703,7 +751,7 @@ function generar(){
 function textoPlanning(){
   const {anio, mes} = mesVigente();
   const plan = planningDe(anio, mes);
-  const out = ["📢 *MEGAFONÍA — " + MESES[mes].toUpperCase() + " " + anio + "*", ""];
+  const out = ["📢 *" + AC.nombre.toUpperCase() + " — " + MESES[mes].toUpperCase() + " " + anio + "*", ""];
   plan.fechas.forEach(f => {
     out.push("*" + DIAS_SEM[f.dow] + " " + f.dia + "*");
     PUESTOS.forEach(p => {
@@ -718,10 +766,10 @@ function textoPlanning(){
 function proximaFecha(){
   const hoy = new Date();
   const corte = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-  const claves = Object.keys(E.plannings).sort();
+  const claves = Object.keys(AC.plannings).sort();
   for(const clave of claves){
     const [a,m] = clave.split("-").map(Number);
-    for(const f of E.plannings[clave].fechas){
+    for(const f of AC.plannings[clave].fechas){
       if(Date.UTC(a, m-1, f.dia) >= corte) return {f:f, anio:a, mes:m-1};
     }
   }
@@ -752,18 +800,18 @@ function fotoDelMes(plan){
 }
 function marcarComoEnviado(){
   const {anio, mes} = mesVigente();
-  E.enviados = E.enviados || {};
-  E.enviados[claveMes(anio, mes)] = fotoDelMes(planningDe(anio, mes));
+  AC.enviados = AC.enviados || {};
+  AC.enviados[claveMes(anio, mes)] = fotoDelMes(planningDe(anio, mes));
 }
 function hayReferencia(){
   const {anio, mes} = mesVigente();
-  return !!(E.enviados && E.enviados[claveMes(anio, mes)]);
+  return !!(AC.enviados && AC.enviados[claveMes(anio, mes)]);
 }
 
 function textoCambios(){
   const {anio, mes} = mesVigente();
   const clave = claveMes(anio, mes);
-  const antes = E.enviados && E.enviados[clave];
+  const antes = AC.enviados && AC.enviados[clave];
   if(!antes)
     return "Todavía no mandaste el planning de este mes.\n\n" +
            "Copiá o compartí primero «Planning del mes»: eso queda como referencia, " +
@@ -795,7 +843,7 @@ function textoCambios(){
     return "No hubo ningún cambio desde lo último que mandaste.\n\n" +
            "Si moviste algo y no aparece acá, fijate que sea de este mes.";
 
-  return ["🔄 *CAMBIOS — " + MESES[mes].toUpperCase() + " " + anio + "*", ""]
+  return ["🔄 *" + AC.nombre.toUpperCase() + " · CAMBIOS — " + MESES[mes].toUpperCase() + " " + anio + "*", ""]
     .concat(lineas)
     .concat(["El resto queda igual que lo que mandé antes 🙏"]).join("\n");
 }
@@ -805,7 +853,7 @@ function textoCambios(){
 function render(){
   const {anio, mes} = mesVigente();
   const plan = planningDe(anio, mes);
-  const activos = E.equipo.filter(p => p.activo);
+  const activos = AC.gente.filter(p => p.activo);
 
   const pestana = (id, txt) =>
     '<button data-vista="' + id + '" role="tab" aria-selected="' + (vista===id) + '">' + txt + '</button>';
@@ -814,7 +862,15 @@ function render(){
   '<header class="tope">' +
     '<div class="tope-fila">' +
       '<div class="marca"><span class="logo">' + logoSVG(NARANJA) + '</span>' +
-        '<div><h1>Consola de Megafonía</h1><div class="sub">Planning del equipo</div></div></div>' +
+        '<div class="rotulo-equipo">' +
+          (E.equipos.length > 1 || !soloLectura
+            ? '<select id="sel-equipo" aria-label="Equipo">' +
+                E.equipos.map(t => '<option value="' + t.id + '"' +
+                  (t.id === E.equipoActual ? " selected" : "") + '>' + esc(t.nombre) + '</option>').join("") +
+                (soloLectura ? "" : '<option value="__nuevo">+ Equipo nuevo…</option>') +
+              '</select>'
+            : '<h1>' + esc(AC.nombre) + '</h1>') +
+          '<div class="sub">Planning del equipo</div></div></div>' +
       '<div class="mes-nav">' +
         '<button data-salto="-1" aria-label="Mes anterior">‹</button>' +
         '<span class="etiqueta">' + MESES[mes] + " " + anio + '</span>' +
@@ -885,7 +941,7 @@ function choques(plan){
         if(enTurno.indexOf(id) !== i)
           salida.push({dia:f.dia, dow:f.dow, id:id,
                        motivo:"dos veces en " + pu.label.toLowerCase()});
-        else if(E.config.tardeExclusiva && manana.has(id))
+        else if(AC.config.tardeExclusiva && manana.has(id))
           salida.push({dia:f.dia, dow:f.dow, id:id, tarde:true,
                        motivo:manana.get(id)[0] + " y además " + pu.label.toLowerCase()});
       });
@@ -958,7 +1014,7 @@ function panelDisponibilidad(){
   const {anio, mes} = mesVigente();
   const clave = claveMes(anio, mes);
   const reglas = restriccionesDe(clave);
-  const activos = E.equipo.filter(p => p.activo);
+  const activos = AC.gente.filter(p => p.activo);
 
   const fichas = reglas.map((r, i) =>
     '<span class="regla" title="' + esc(r.texto || "") + '">' +
@@ -1033,7 +1089,7 @@ function selectorAsig(dia, puesto, idx, asignado, activos, chocado, ausente){
 
 function panelReparto(plan){
   const conteo = {};
-  E.equipo.filter(p => p.activo).forEach(p => conteo[p.id] = 0);
+  AC.gente.filter(p => p.activo).forEach(p => conteo[p.id] = 0);
   plan.fechas.forEach(f => Object.values(f.puestos).forEach(slots =>
     slots.forEach(id => { if(id) conteo[id] = (conteo[id]||0) + 1; })));
   const filas = Object.keys(conteo)
@@ -1045,7 +1101,7 @@ function panelReparto(plan){
 }
 
 function vistaEquipo(){
-  const gente = E.equipo.map(p =>
+  const gente = AC.gente.map(p =>
     '<div class="persona' + (p.activo ? "" : " baja") + '" data-id="' + p.id + '">' +
       '<input class="nombre" value="' + esc(p.nombre) + '" data-campo="nombre" aria-label="Nombre"' +
         (soloLectura ? " readonly" : "") + '>' +
@@ -1060,7 +1116,7 @@ function vistaEquipo(){
     '</div>').join("");
 
   const dias = DIAS_CORTOS.map((d,i) =>
-    '<button class="chip" data-dia-semana="' + i + '" aria-pressed="' + E.config.dias.includes(i) + '">' + d + '</button>').join("");
+    '<button class="chip" data-dia-semana="' + i + '" aria-pressed="' + AC.config.dias.includes(i) + '">' + d + '</button>').join("");
 
   const puestos = PUESTOS.map((pu, i) =>
     '<div class="puesto-cfg" data-puesto-idx="' + i + '">' +
@@ -1080,7 +1136,17 @@ function vistaEquipo(){
         'title="Quitar este puesto">✕</button>') +
     '</div>').join("");
 
-  return '<section class="tarjeta" style="margin-top:0"><h2>Puestos a cubrir</h2>' +
+  return '<section class="tarjeta" style="margin-top:0"><h2>Este equipo</h2>' +
+      '<div class="fila-equipo">' +
+        '<input class="nombre-equipo" value="' + esc(AC.nombre) + '" data-campo="nombre-equipo" ' +
+          'aria-label="Nombre del equipo"' + (soloLectura ? " readonly" : "") + '>' +
+        (soloLectura || E.equipos.length < 2 ? "" :
+          '<button class="btn" id="btn-borrar-equipo">Borrar equipo</button>') +
+      '</div>' +
+      '<p style="color:var(--suave);font-size:13px;margin:12px 0 0;max-width:66ch">' +
+      'Cada equipo tiene su gente, sus puestos y sus plannings, sin mezclarse. ' +
+      'Se cambia de uno a otro con el desplegable de arriba.</p></section>' +
+    '<section class="tarjeta"><h2>Puestos a cubrir</h2>' +
       puestos + (soloLectura ? "" :
       '<button class="btn" id="btn-sumar-puesto" style="margin-top:11px">+ Sumar puesto</button>') +
       '<p style="color:var(--suave);font-size:13px;margin:14px 0 0;max-width:66ch">' +
@@ -1089,9 +1155,9 @@ function vistaEquipo(){
     '<section class="tarjeta"><h2>Días de servicio</h2>' +
       '<div class="ajustes"><div class="grupo-dias">' + dias + '</div>' +
       '<label class="switch"><input type="checkbox" id="tarde-excl"' +
-        (E.config.tardeExclusiva ? " checked" : "") + (soloLectura ? " disabled" : "") + '>' +
+        (AC.config.tardeExclusiva ? " checked" : "") + (soloLectura ? " disabled" : "") + '>' +
         'Quien ya sirve ese día no repite en un puesto de otro turno</label></div></section>' +
-    '<section class="tarjeta"><h2>Equipo · ' + E.equipo.filter(p=>p.activo).length + ' activos</h2>' +
+    '<section class="tarjeta"><h2>Equipo · ' + AC.gente.filter(p=>p.activo).length + ' activos</h2>' +
       gente + (soloLectura ? "" :
       '<button class="btn" id="btn-sumar" style="margin-top:12px">+ Sumar persona</button>') +
       '<p style="color:var(--suave);font-size:13px;margin:16px 0 0">' +
@@ -1225,7 +1291,7 @@ function dibujarPlanilla(){
   const baseTitulo = IMG.margen + IMG.logo/2 + 10;
   c.textBaseline = "alphabetic"; c.textAlign = "left";
   c.fillStyle = P.tinta; c.font = fuente(700, 29, "Archivo");
-  c.fillText("MEGAFONÍA", x, baseTitulo);   // el mes ya va en la esquina de la tabla
+  c.fillText(AC.nombre.toUpperCase(), x, baseTitulo);   // el mes ya va en la esquina
 
   const x0 = IMG.margen, y0 = IMG.titulo;
   const anchoTabla = IMG.ancho - IMG.margen*2;
@@ -1314,6 +1380,13 @@ function dibujarPlanilla(){
   return cv;
 }
 
+// "Escuela Sabática" -> "escuela-sabatica", para el nombre del archivo.
+function archivoDe(nombre){
+  return (nombre || "planning").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "planning";
+}
+
 async function imagenDelMes(){
   try{ await document.fonts.ready; }catch(e){}   // sin las fuentes cargadas saldría con la de reserva
   await cargarLogo();
@@ -1345,7 +1418,7 @@ async function descargarImagen(){
   const btn = $("#btn-imagen");
   if(btn){ btn.disabled = true; btn.textContent = "Preparando…"; }
   const restaurar = () => { if(btn){ btn.disabled = false; btn.textContent = "Descargar como imagen"; } };
-  const nombre = "megafonia-" + MESES[mes] + "-" + anio + ".png";
+  const nombre = archivoDe(AC.nombre) + "-" + MESES[mes] + "-" + anio + ".png";
   try{
     const dl = modoLocal ? null : await claude.use("downloads");
     if(!modoLocal && !dl){ restaurar(); return brindis("Descargar imágenes no está disponible en esta vista."); }
@@ -1386,7 +1459,7 @@ function validarRestricciones(crudas, fechas){
 }
 
 function promptDisponibilidad(texto, fechas, anio, mes){
-  const gente = E.equipo.filter(p => p.activo)
+  const gente = AC.gente.filter(p => p.activo)
     .map(p => "  " + p.id + " = " + p.nombre).join("\n");
   const dias = fechas.map(f => DIAS_SEM[f.dow].toLowerCase() + " " + f.dia).join(", ");
   return [
@@ -1445,9 +1518,9 @@ async function interpretarNotas(){
                                      {modelTier:"default"});
     const buenas = validarRestricciones(crudas, fechas);
 
-    E.notas = E.notas || {}; E.notas[clave] = texto;
-    E.restricciones = E.restricciones || {};
-    E.restricciones[clave] = buenas;
+    AC.notas = AC.notas || {}; AC.notas[clave] = texto;
+    AC.restricciones = AC.restricciones || {};
+    AC.restricciones[clave] = buenas;
     marcarSucio(); listo(); render();
 
     if(!buenas.length) return brindis("No encontré ninguna restricción en ese texto.");
@@ -1487,17 +1560,15 @@ function agregarRestriccionManual(){
 const TOPE_HISTORIAL = 60;
 let pilaUndo = [], pilaRedo = [], instantanea = "", ultimoGuardado = "";
 
-const retrato = () => JSON.stringify({equipo:E.equipo, puestos:E.puestos, config:E.config, plannings:E.plannings,
-                                      notas:E.notas || {}, restricciones:E.restricciones || {},
-                                      enviados:E.enviados || {}});
+const retrato = () => JSON.stringify({equipos:E.equipos, equipoActual:E.equipoActual});
 
 function restaurar(snap){
   const d = JSON.parse(snap);
-  E.equipo = d.equipo; E.config = d.config; E.plannings = d.plannings;
-  if(Array.isArray(d.puestos) && d.puestos.length) E.puestos = d.puestos;
-  fijarPuestos();
-  E.notas = d.notas || {}; E.restricciones = d.restricciones || {};
-  E.enviados = d.enviados || {};
+  if(Array.isArray(d.equipos) && d.equipos.length){
+    E.equipos = d.equipos;
+    if(d.equipoActual) E.equipoActual = d.equipoActual;
+  }
+  fijarActivo();
   // mesActual queda como está: qué mes mirás es navegación, no un cambio que deshacer.
 }
 function recalcularSucio(){ sucio = instantanea !== ultimoGuardado; }
@@ -1596,6 +1667,15 @@ document.addEventListener("click", ev => {
   if(t.id === "btn-guardar") return guardar();
 
   if(t.dataset.msj){ tipoMsj = t.dataset.msj; render(); return; }
+  if(t.id === "btn-borrar-equipo"){
+    if(E.equipos.length === 1) return brindis("Tiene que quedar al menos un equipo.");
+    if(!confirm("¿Borrar «" + AC.nombre + "» con toda su gente y sus plannings?\n\n" +
+                "Se puede deshacer con ↶ mientras no cierres la app.")) return;
+    E.equipos = E.equipos.filter(t => t.id !== AC.id);
+    E.equipoActual = E.equipos[0].id;
+    fijarActivo(); marcarSucio(); render();
+    return brindis("Equipo borrado");
+  }
   if(t.dataset.paleta){
     paletaImagen = t.dataset.paleta;
     try{ localStorage.setItem("megafonia:paleta", paletaImagen); }catch(e){}
@@ -1618,8 +1698,8 @@ document.addEventListener("click", ev => {
 
   if(t.dataset.diaSemana !== undefined){
     const d = Number(t.dataset.diaSemana);
-    E.config.dias = E.config.dias.includes(d)
-      ? E.config.dias.filter(x => x !== d) : E.config.dias.concat(d).sort();
+    AC.config.dias = AC.config.dias.includes(d)
+      ? AC.config.dias.filter(x => x !== d) : AC.config.dias.concat(d).sort();
     marcarSucio(); render(); return;
   }
   if(t.id === "btn-sumar-puesto"){
@@ -1627,7 +1707,7 @@ document.addEventListener("click", ev => {
     do { id = "puesto-" + n++; } while(PUESTOS.some(x => x.id === id));
     PUESTOS.push({id:id, label:"Puesto nuevo", emoji:"•", cupo:1,
                   color:PALETA_PUESTOS[PUESTOS.length % PALETA_PUESTOS.length]});
-    Object.values(E.plannings).forEach(pl => pl.fechas.forEach(f => { f.puestos[id] = [null]; }));
+    Object.values(AC.plannings).forEach(pl => pl.fechas.forEach(f => { f.puestos[id] = [null]; }));
     marcarSucio(); render();
     const campos = document.querySelectorAll(".puesto-cfg .rotulo");
     const ultimo = campos[campos.length-1];
@@ -1640,15 +1720,15 @@ document.addEventListener("click", ev => {
     if(!confirm("¿Quitar «" + pu.label + "»? Se borra de todas las fechas de todos los meses."))
       return;
     PUESTOS.splice(i, 1);
-    Object.values(E.plannings).forEach(pl => pl.fechas.forEach(f => { delete f.puestos[pu.id]; }));
-    E.equipo.forEach(p => { p.puestos = p.puestos.filter(x => x !== pu.id); });
+    Object.values(AC.plannings).forEach(pl => pl.fechas.forEach(f => { delete f.puestos[pu.id]; }));
+    AC.gente.forEach(p => { p.puestos = p.puestos.filter(x => x !== pu.id); });
     marcarSucio(); render();
     return;
   }
   if(t.id === "btn-sumar"){
     let n = 1, id;
     do { id = "persona-" + n++; } while(persona(id));
-    E.equipo.push({id:id, nombre:"Nombre y apellido", puestos:PUESTOS.map(p => p.id), activo:true});
+    AC.gente.push({id:id, nombre:"Nombre y apellido", puestos:PUESTOS.map(p => p.id), activo:true});
     marcarSucio(); render();
     const inputs = document.querySelectorAll(".persona input.nombre");
     const ultimo = inputs[inputs.length-1];
@@ -1669,8 +1749,8 @@ document.addEventListener("click", ev => {
   if(t.dataset.accion === "borrar"){
     if(!confirm("¿Sacar a " + p.nombre + " del equipo? Las fechas que ya tenía asignadas quedan vacías."))
       return;
-    E.equipo = E.equipo.filter(x => x.id !== p.id);
-    Object.values(E.plannings).forEach(pl => pl.fechas.forEach(f =>
+    AC.gente = AC.gente.filter(x => x.id !== p.id);
+    Object.values(AC.plannings).forEach(pl => pl.fechas.forEach(f =>
       Object.keys(f.puestos).forEach(k =>
         f.puestos[k] = f.puestos[k].map(id => id === p.id ? null : id))));
     marcarSucio(); render();
@@ -1679,6 +1759,23 @@ document.addEventListener("click", ev => {
 
 document.addEventListener("change", ev => {
   const el = ev.target;
+
+  if(el.id === "sel-equipo"){
+    if(el.value === "__nuevo"){
+      const nombre = (prompt("¿Cómo se llama el equipo nuevo?", "Escuela Sabática") || "").trim();
+      if(!nombre){ render(); return; }               // cancelaste: vuelve al que estaba
+      let n = E.equipos.length + 1, id;
+      do { id = "equipo-" + n++; } while(E.equipos.some(t => t.id === id));
+      E.equipos.push({id:id, nombre:nombre, puestos:[], gente:[],
+                      config:{dias:AC.config.dias.slice(), tardeExclusiva:false},
+                      plannings:{}, notas:{}, restricciones:{}, enviados:{}});
+      E.equipoActual = id; fijarActivo(); marcarSucio(); render();
+      brindis("Cargá su gente y sus puestos en la pestaña Equipo");
+      return;
+    }
+    E.equipoActual = el.value; fijarActivo(); render();
+    return;                                          // cambiar de equipo no es un cambio que guardar
+  }
   if(el.id === "archivo-datos"){
     if(el.files && el.files[0]) importarDatos(el.files[0]);
     el.value = "";                       // así se puede volver a elegir el mismo archivo
@@ -1686,12 +1783,17 @@ document.addEventListener("change", ev => {
   }
   if(el.classList.contains("asig")){
     const {anio, mes} = mesVigente();
-    const plan = E.plannings[claveMes(anio, mes)];
+    const plan = AC.plannings[claveMes(anio, mes)];
     const fecha = plan.fechas.find(f => f.dia === Number(el.dataset.dia));
     fecha.puestos[el.dataset.puesto][Number(el.dataset.idx)] = el.value || null;
     marcarSucio(); render(); return;
   }
-  if(el.id === "tarde-excl"){ E.config.tardeExclusiva = el.checked; marcarSucio(); render(); return; }
+  if(el.id === "tarde-excl"){ AC.config.tardeExclusiva = el.checked; marcarSucio(); render(); return; }
+  if(el.dataset.campo === "nombre-equipo"){
+    const nombre = el.value.trim() || "Equipo";
+    if(AC.nombre !== nombre){ AC.nombre = nombre; marcarSucio(); render(); }
+    return;
+  }
   if(el.dataset.campo === "nombre" && retrato() !== instantanea) marcarSucio();
   const cfg = el.closest && el.closest(".puesto-cfg");
   if(cfg){
@@ -1705,7 +1807,7 @@ document.addEventListener("change", ev => {
       const n = Math.max(1, Math.min(6, Number(el.value) || 1));
       pu.cupo = n;
       // Las fechas ya guardadas se ajustan al cupo nuevo, sin perder lo asignado.
-      Object.values(E.plannings).forEach(pl => pl.fechas.forEach(f => {
+      Object.values(AC.plannings).forEach(pl => pl.fechas.forEach(f => {
         const hay = f.puestos[pu.id] || [];
         f.puestos[pu.id] = Array.from({length:n}, (_, i) => hay[i] || null);
       }));
@@ -1717,9 +1819,9 @@ document.addEventListener("change", ev => {
   }
   if(el.id === "notas-mes"){
     const {anio, mes} = mesVigente();
-    E.notas = E.notas || {};
+    AC.notas = AC.notas || {};
     const clave = claveMes(anio, mes);
-    if((E.notas[clave] || "") !== el.value){ E.notas[clave] = el.value; marcarSucio(); }
+    if((AC.notas[clave] || "") !== el.value){ AC.notas[clave] = el.value; marcarSucio(); }
   }
 });
 
@@ -1768,15 +1870,19 @@ async function copiar(txt){
 /* ═══ Guardado ═════════════════════════════════════════════════════ */
 
 function documentoCompleto(){
-  const limpio = {equipo:E.equipo, puestos:E.puestos, config:E.config, plannings:{}, mesActual:E.mesActual,
-                  notas:E.notas || {}, restricciones:E.restricciones || {},
-                  enviados:E.enviados || {}};
-  // Los meses que solo se hojearon quedan vacíos: no se guardan.
-  Object.keys(E.plannings).forEach(clave => {
-    const pl = E.plannings[clave];
-    if(pl.fechas.some(f => Object.values(f.puestos).some(sl => sl.some(Boolean))))
-      limpio.plannings[clave] = pl;
-  });
+  // Los meses que solo se hojearon quedan vacíos: no se guardan, de ningún equipo.
+  const limpio = {equipoActual:E.equipoActual, mesActual:E.mesActual, equipos:
+    E.equipos.map(t => {
+      const plannings = {};
+      Object.keys(t.plannings || {}).forEach(clave => {
+        const pl = t.plannings[clave];
+        if(pl.fechas.some(f => Object.values(f.puestos).some(sl => sl.some(Boolean))))
+          plannings[clave] = pl;
+      });
+      return {id:t.id, nombre:t.nombre, puestos:t.puestos, gente:t.gente,
+              config:t.config, plannings:plannings, notas:t.notas || {},
+              restricciones:t.restricciones || {}, enviados:t.enviados || {}};
+    })};
   const datos = JSON.stringify(limpio, null, 2).replace(/</g, "\\u003c");
   return '<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8">\n' +
     '<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
@@ -1821,10 +1927,8 @@ function bajarArchivo(blob, nombre){
 /* ═══ Copia de seguridad ═══════════════════════════════════════════ */
 
 async function exportarDatos(){
-  const json = JSON.stringify({equipo:E.equipo, puestos:E.puestos, config:E.config, plannings:E.plannings,
-                               notas:E.notas || {}, restricciones:E.restricciones || {},
-                               enviados:E.enviados || {}}, null, 2);
-  const nombre = "megafonia-datos.json";
+  const json = JSON.stringify({equipos:E.equipos, equipoActual:E.equipoActual}, null, 2);
+  const nombre = archivoDe(AC.nombre) + "-datos.json";
   if(modoLocal){ bajarArchivo(new Blob([json], {type:"application/json"}), nombre);
                  return brindis("Datos exportados"); }
   try{
@@ -1844,19 +1948,23 @@ function importarDatos(archivo){
     let d;
     try{ d = JSON.parse(lector.result); }
     catch(e){ return brindis("Ese archivo no es un JSON válido."); }
-    if(!d || !Array.isArray(d.equipo) || !d.equipo.length)
-      return brindis("Ese archivo no tiene un equipo adentro.");
-    if(!confirm("Vas a reemplazar el equipo y los plannings de esta copia por los del archivo " +
-                "(" + d.equipo.length + " personas). Podés deshacerlo con ↶. ¿Seguimos?")) return;
-    restaurar(JSON.stringify({
-      equipo: d.equipo,
-      puestos: Array.isArray(d.puestos) && d.puestos.length ? d.puestos : E.puestos,
-      config: d.config && Array.isArray(d.config.dias) ? d.config : E.config,
-      plannings: d.plannings && typeof d.plannings === "object" ? d.plannings : {},
-      notas: d.notas && typeof d.notas === "object" ? d.notas : {},
-      restricciones: d.restricciones && typeof d.restricciones === "object" ? d.restricciones : {},
-      enviados: d.enviados && typeof d.enviados === "object" ? d.enviados : {}
-    }));
+
+    // Acepta tanto un respaldo nuevo (varios equipos) como uno viejo (uno solo).
+    let equipos = null;
+    if(Array.isArray(d.equipos) && d.equipos.length) equipos = d.equipos;
+    else if(Array.isArray(d.equipo) && d.equipo.length)
+      equipos = [{id:"equipo-1", nombre:"Equipo", puestos:d.puestos || AC.puestos,
+                  gente:d.equipo, config:d.config || AC.config,
+                  plannings:d.plannings || {}, notas:d.notas || {},
+                  restricciones:d.restricciones || {}, enviados:d.enviados || {}}];
+    if(!equipos) return brindis("Ese archivo no tiene ningún equipo adentro.");
+
+    const cuantos = equipos.length === 1
+      ? equipos[0].gente.length + " personas"
+      : equipos.length + " equipos";
+    if(!confirm("Vas a reemplazar todo lo que hay acá por lo del archivo (" + cuantos +
+                "). Podés deshacerlo con ↶. ¿Seguimos?")) return;
+    restaurar(JSON.stringify({equipos:equipos, equipoActual:equipos[0].id}));
     marcarSucio(); render();
     brindis("Datos importados: tocá Guardar para conservarlos");
   };
