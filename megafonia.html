@@ -83,22 +83,22 @@ button,input,select,textarea{font:inherit; color:inherit}
 .marca .logo svg{display:block; width:100%; height:100%}
 
 .mes-nav{display:flex; align-items:center; gap:2px; background:var(--panel2);
-  border:1px solid var(--linea); border-radius:var(--r); padding:3px}
+  border:1px solid var(--linea); border-radius:var(--r); padding:4px}
 .mes-nav button{
   background:none; border:0; cursor:pointer; color:var(--suave);
-  padding:5px 9px; border-radius:7px; line-height:1; font-size:15px;
+  padding:7px 12px; border-radius:8px; line-height:1; font-size:19px;
 }
 .mes-nav button:hover{background:var(--panel); color:var(--tinta)}
 .mes-nav .etiqueta{
-  font:600 13px/1 "IBM Plex Mono",monospace; padding:0 8px;
-  min-width:112px; text-align:center; text-transform:capitalize;
+  font:600 14.5px/1 "IBM Plex Mono",monospace; padding:0 10px;
+  min-width:128px; text-align:center; text-transform:capitalize;
 }
 
-.acciones{display:flex; gap:8px; align-items:center}
+.acciones{display:flex; gap:10px; align-items:center}
 .btn{
   background:var(--panel2); border:1px solid var(--linea); color:var(--tinta);
-  padding:8px 14px; border-radius:var(--r); cursor:pointer; font-weight:500;
-  font-size:14px; white-space:nowrap; transition:background .12s,border-color .12s;
+  padding:10px 17px; border-radius:var(--r); cursor:pointer; font-weight:500;
+  font-size:14.5px; white-space:nowrap; transition:background .12s,border-color .12s;
 }
 .btn:hover{background:var(--panel); border-color:var(--tenue)}
 .btn.primario{background:var(--acento); border-color:var(--acento); color:var(--acento-tinta)}
@@ -108,10 +108,11 @@ label.btn{display:inline-block; line-height:1.5}
 .btn.primario:disabled:hover{filter:none}
 
 .estado-guardado{
-  font:500 11px/1 "IBM Plex Mono",monospace; letter-spacing:.06em;
-  text-transform:uppercase; color:var(--tenue); display:flex; align-items:center; gap:6px;
+  font:500 12px/1 "IBM Plex Mono",monospace; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--tenue); display:flex; align-items:center; gap:7px;
+  margin-right:2px;
 }
-.estado-guardado::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--ok)}
+.estado-guardado::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--ok)}
 .estado-guardado.sucio{color:var(--alerta)}
 .estado-guardado.sucio::before{background:var(--alerta)}
 
@@ -263,10 +264,15 @@ details.a-mano summary:hover{color:var(--tinta)}
 }
 .persona-acc{display:flex; gap:4px}
 .icono{
-  background:none; border:1px solid transparent; border-radius:7px; cursor:pointer;
-  padding:6px 9px; color:var(--tenue); font-size:13px; line-height:1;
+  background:none; border:1px solid transparent; border-radius:8px; cursor:pointer;
+  padding:8px 11px; color:var(--suave); font-size:18px; line-height:1;
 }
 .icono:hover{background:var(--panel2); border-color:var(--linea); color:var(--tinta)}
+.icono:disabled{opacity:.3; cursor:not-allowed}
+.icono:disabled:hover{background:none; border-color:transparent; color:var(--suave)}
+/* Los tres de la cabecera van juntos, separados de los botones de acción. */
+.acciones .icono{margin-right:-6px}
+.acciones .icono + .btn{margin-left:12px}
 .icono.peligro:hover{color:var(--peligro); border-color:var(--peligro)}
 
 /* ── Mensajes ─────────────────────────────────────────── */
@@ -400,6 +406,10 @@ select.asig.chocado{
 
 @media (max-width:640px){
   .tope-fila{padding:12px 16px; gap:12px}
+  .acciones{gap:8px; width:100%}
+  .acciones .btn{flex:1; text-align:center; padding:11px 12px}
+  .icono{font-size:20px; padding:9px 12px}
+  .estado-guardado{font-size:11px}
   .marca{width:100%; margin-right:0}
   .mes-nav{flex:1}
   .mes-nav .etiqueta{flex:1}
