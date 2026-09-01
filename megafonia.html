@@ -274,8 +274,8 @@ select.asig option{background:var(--panel); color:var(--tinta); font-style:norma
 .icono:disabled:hover{background:none; border-color:transparent; color:var(--tenue)}
 
 /* Los tres de la cabecera: dibujados, no caracteres tipográficos. */
-.icono.trazo{padding:7px; color:var(--suave)}
-.icono.trazo svg{display:block; width:20px; height:20px}
+.icono.trazo{padding:6px; color:var(--suave); display:flex; align-items:center}
+.icono.trazo svg{display:block; width:21px; height:21px}
 .acciones .icono.trazo + .btn{margin-left:6px}
 .icono.peligro:hover{color:var(--peligro); border-color:var(--peligro)}
 
@@ -594,13 +594,16 @@ const LOGO_D = "m 128.7,161.7 c -11.5,-1.9 -17.7,3.5 -19.6,8.6 -0.2,0.5 -0.7,0.4
 // Trazos propios: los caracteres ⟳ ↶ ↷ se ven pobres y cambian de forma
 // según la tipografía que tenga el sistema.
 const TRAZOS = {
-  recargar: '<path d="M20 11a8 8 0 1 0-2.3 5.6"/><path d="M20 5v6h-6"/>',
-  deshacer: '<path d="M9 7 4 12l5 5"/><path d="M4 12h9a7 7 0 0 1 0 14h-1"/>',
-  rehacer:  '<path d="M15 7l5 5-5 5"/><path d="M20 12h-9a7 7 0 0 0 0 14h1"/>'
+  recargar: "M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 " +
+            "4.22 1.78L13 11h7V4l-2.35 2.35z",
+  deshacer: "M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 " +
+            "5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z",
+  rehacer:  "M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 " +
+            "4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"
 };
 const trazo = nombre =>
-  '<svg viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="2" ' +
-  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + TRAZOS[nombre] + '</svg>';
+  '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+  '<path d="' + TRAZOS[nombre] + '"/></svg>';
 
 const logoSVG = color =>
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 169.8 170.1" role="img" ' +
