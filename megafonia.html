@@ -1047,9 +1047,10 @@ function vistaCompartir(){
   return (tabla ?
     '<section class="tarjeta" style="margin-top:0"><h2>Planilla del mes</h2>' + tabla +
       '<div class="acciones" style="margin-top:16px">' +
-        '<button class="btn" id="btn-imagen">Descargar como imagen</button>' +
-        '<span style="color:var(--suave);font-size:13px">Para mandar al grupo como foto, ' +
-          'igual que la planilla de siempre.</span>' +
+        '<button class="btn primario" id="btn-copiar-img">Copiar imagen</button>' +
+        '<button class="btn" id="btn-imagen">Descargar</button>' +
+        '<span style="color:var(--suave);font-size:13px">Copiala y pegala en el grupo, ' +
+          'como la planilla de siempre.</span>' +
       '</div></section>' : "") +
     '<section class="tarjeta"' + (tabla ? "" : ' style="margin-top:0"') + '><h2>Mensaje</h2>' +
     '<div class="selector-msj">' +
@@ -1130,15 +1131,32 @@ function dibujarPlanilla(){
   const x0 = IMG.margen, y0 = IMG.titulo;
   const anchoTabla = IMG.ancho - IMG.margen*2;
 
-  // Cabecera
+  // Cabecera, como la tabla de la pantalla: el mes en la esquina y cada
+  // puesto con su punto de color delante.
   c.fillStyle = IMG.acento;
   c.fillRect(x0, y0, anchoTabla, IMG.cabeceraAlto);
-  c.fillStyle = "#FFFFFF"; c.textBaseline = "middle";
-  c.font = fuente(600, 25, "Archivo");
+  const medio = y0 + IMG.cabeceraAlto/2;
+
+  c.fillStyle = "#FFFFFF"; c.textBaseline = "middle"; c.textAlign = "left";
+  c.font = fuente(600, 24, "Archivo");
+  const mesEsquina = MESES[mes].charAt(0).toUpperCase() + MESES[mes].slice(1) + " " + anio;
+  c.fillText(mesEsquina, x0 + 22, medio);
+
+  c.font = fuente(600, 23, "Archivo");
   PUESTOS.forEach((p, i) => {
     const cx = x0 + IMG.colFecha + anchoCol*i + anchoCol/2;
-    c.textAlign = "center";
-    c.fillText(p.label.toUpperCase(), cx, y0 + IMG.cabeceraAlto/2);
+    const etiqueta = p.label.toUpperCase();
+    const ancho = c.measureText(etiqueta).width;
+    const puntoX = cx - (ancho + 13 + 11)/2;
+
+    c.fillStyle = IMG.puestos[p.id];         // el punto del color del puesto
+    c.beginPath();
+    if(c.roundRect) c.roundRect(puntoX, medio - 5.5, 11, 11, 3);
+    else c.rect(puntoX, medio - 5.5, 11, 11);
+    c.fill();
+
+    c.fillStyle = "#FFFFFF"; c.textAlign = "left";
+    c.fillText(etiqueta, puntoX + 11 + 13, medio);
   });
 
   // Filas
@@ -1188,6 +1206,32 @@ function dibujarPlanilla(){
   return cv;
 }
 
+async function imagenDelMes(){
+  try{ await document.fonts.ready; }catch(e){}   // sin las fuentes cargadas saldría con la de reserva
+  await cargarLogo();
+  return new Promise(res => dibujarPlanilla().toBlob(res, "image/png"));
+}
+
+async function copiarImagen(){
+  const btn = $("#btn-copiar-img");
+  const antes = btn ? btn.textContent : "";
+  if(btn){ btn.disabled = true; btn.textContent = "Preparando…"; }
+  const listo = () => { if(btn){ btn.disabled = false; btn.textContent = antes; } };
+  try{
+    if(!navigator.clipboard || typeof ClipboardItem === "undefined"){
+      listo();
+      return brindis("Este navegador no deja copiar imágenes. Usá Descargar.");
+    }
+    // Safari exige la promesa, no el blob ya resuelto: sirve para los dos.
+    await navigator.clipboard.write([new ClipboardItem({"image/png": imagenDelMes()})]);
+    listo();
+    brindis("Imagen copiada: pegala en el grupo");
+  }catch(err){
+    listo();
+    brindis("No se pudo copiar. Probá con Descargar como imagen.");
+  }
+}
+
 async function descargarImagen(){
   const {anio, mes} = mesVigente();
   const btn = $("#btn-imagen");
@@ -1197,9 +1241,7 @@ async function descargarImagen(){
   try{
     const dl = modoLocal ? null : await claude.use("downloads");
     if(!modoLocal && !dl){ restaurar(); return brindis("Descargar imágenes no está disponible en esta vista."); }
-    try{ await document.fonts.ready; }catch(e){}   // sin las fuentes cargadas saldría con la de reserva
-    await cargarLogo();
-    const blob = await new Promise(res => dibujarPlanilla().toBlob(res, "image/png"));
+    const blob = await imagenDelMes();
     if(modoLocal) bajarArchivo(blob, nombre);
     else await dl.save({filename:nombre, data:blob});
     restaurar();
@@ -1441,6 +1483,7 @@ document.addEventListener("click", ev => {
   if(t.id === "btn-guardar") return guardar();
 
   if(t.dataset.msj){ tipoMsj = t.dataset.msj; render(); return; }
+  if(t.id === "btn-copiar-img") return copiarImagen();
   if(t.id === "btn-imagen") return descargarImagen();
   if(t.id === "btn-exportar") return exportarDatos();
   if(t.id === "btn-copiar" || t.id === "btn-wa"){
