@@ -1089,8 +1089,8 @@ function vistaCompartir(){
 
 /* ═══ Imagen de la planilla ═════════════════════════════════════════ */
 
-const IMG = {ancho:1580, filaAlto:78, cabeceraAlto:84, titulo:118, margen:34,
-             colFecha:250, logo:62};
+const IMG = {ancho:1580, filaAlto:86, cabeceraAlto:80, titulo:96, margen:34,
+             colFecha:250, logo:46, radio:16};
 
 // Dos versiones de la misma planilla. La oscura es la que se ve en pantalla;
 // la clara imprime mejor y pesa menos en un chat con fondo blanco.
@@ -1124,7 +1124,8 @@ function dibujarPlanilla(){
   const plan = planningDe(anio, mes);
   const filas = plan.fechas;
   const anchoCol = (IMG.ancho - IMG.margen*2 - IMG.colFecha) / PUESTOS.length;
-  const alto = IMG.titulo + IMG.cabeceraAlto + filas.length*IMG.filaAlto + IMG.margen*2;
+  // El título ya trae su propio aire arriba: abajo va un solo margen.
+  const alto = IMG.titulo + IMG.cabeceraAlto + filas.length*IMG.filaAlto + IMG.margen;
 
   const cv = document.createElement("canvas");
   const esc2 = 2;
@@ -1142,16 +1143,21 @@ function dibujarPlanilla(){
     c.drawImage(imgLogo, x, IMG.margen, IMG.logo, IMG.logo);
     x += IMG.logo + 20;
   }
-  const baseTitulo = IMG.margen + IMG.logo/2 + 14;
+  const baseTitulo = IMG.margen + IMG.logo/2 + 10;
   c.textBaseline = "alphabetic"; c.textAlign = "left";
-  c.fillStyle = P.tinta; c.font = fuente(700, 40, "Archivo");
-  c.fillText("MEGAFONÍA", x, baseTitulo);
-  const anchoMarca = c.measureText("MEGAFONÍA").width;
-  c.fillStyle = P.acento; c.font = fuente(600, 40, "Archivo");
-  c.fillText(MESES[mes].toUpperCase() + " " + anio, x + anchoMarca + 22, baseTitulo);
+  c.fillStyle = P.tinta; c.font = fuente(700, 29, "Archivo");
+  c.fillText("MEGAFONÍA", x, baseTitulo);   // el mes ya va en la esquina de la tabla
 
   const x0 = IMG.margen, y0 = IMG.titulo;
   const anchoTabla = IMG.ancho - IMG.margen*2;
+
+  const altoTabla = IMG.cabeceraAlto + filas.length*IMG.filaAlto;
+  const marco = () => {
+    c.beginPath();
+    if(c.roundRect) c.roundRect(x0, y0, anchoTabla, altoTabla, IMG.radio);
+    else c.rect(x0, y0, anchoTabla, altoTabla);
+  };
+  c.save(); marco(); c.clip();          // todo lo de adentro respeta las esquinas
 
   // Cabecera, como la tabla de la pantalla: el mes en la esquina y cada
   // puesto con su punto de color delante.
@@ -1160,7 +1166,7 @@ function dibujarPlanilla(){
   const medio = y0 + IMG.cabeceraAlto/2;
 
   c.fillStyle = P.sobreAcento; c.textBaseline = "middle"; c.textAlign = "left";
-  c.font = fuente(600, 24, "Archivo");
+  c.font = fuente(600, 25, "Archivo");
   const mesEsquina = MESES[mes].charAt(0).toUpperCase() + MESES[mes].slice(1) + " " + anio;
   c.fillText(mesEsquina, x0 + 22, medio);
 
@@ -1188,27 +1194,27 @@ function dibujarPlanilla(){
     c.fillRect(x0, y, anchoTabla, IMG.filaAlto);
 
     c.textAlign = "left"; c.fillStyle = P.tinta;
-    c.font = fuente(600, 24, "Archivo");
+    c.font = fuente(600, 26, "Archivo");
     c.fillText(DIAS_SEM[f.dow] + " " + f.dia, x0 + 22, y + IMG.filaAlto/2);
 
-    c.textAlign = "center"; c.font = fuente(400, 24, '"IBM Plex Sans"');
+    c.textAlign = "center"; c.font = fuente(400, 28, '"IBM Plex Sans"');
     PUESTOS.forEach((p, j) => {
       const q = f.puestos[p.id].filter(Boolean).map(nombreDe);
       const cx = x0 + IMG.colFecha + anchoCol*j + anchoCol/2;
       c.fillStyle = q.length ? P.tinta : P.suave;
       const txt = q.length ? q.join(" · ") : "—";
       if(q.length === 2 && c.measureText(txt).width > anchoCol - 26){
-        c.font = fuente(400, 21, '"IBM Plex Sans"');
-        c.fillText(q[0], cx, y + IMG.filaAlto/2 - 13);
-        c.fillText(q[1], cx, y + IMG.filaAlto/2 + 13);
         c.font = fuente(400, 24, '"IBM Plex Sans"');
+        c.fillText(q[0], cx, y + IMG.filaAlto/2 - 15);
+        c.fillText(q[1], cx, y + IMG.filaAlto/2 + 15);
+        c.font = fuente(400, 28, '"IBM Plex Sans"');
       }else{
-        let f2 = 24;
-        while(f2 > 15 && c.measureText(txt).width > anchoCol - 26){
+        let f2 = 28;
+        while(f2 > 17 && c.measureText(txt).width > anchoCol - 26){
           f2 -= 1; c.font = fuente(400, f2, '"IBM Plex Sans"');
         }
         c.fillText(txt, cx, y + IMG.filaAlto/2);
-        c.font = fuente(400, 24, '"IBM Plex Sans"');
+        c.font = fuente(400, 28, '"IBM Plex Sans"');
       }
     });
   });
@@ -1221,9 +1227,10 @@ function dibujarPlanilla(){
   }
   for(let j = 0; j <= PUESTOS.length; j++){
     const x = x0 + IMG.colFecha + anchoCol*j + .5;
-    c.beginPath(); c.moveTo(x, y0); c.lineTo(x, y0 + IMG.cabeceraAlto + filas.length*IMG.filaAlto); c.stroke();
+    c.beginPath(); c.moveTo(x, y0); c.lineTo(x, y0 + altoTabla); c.stroke();
   }
-  c.strokeRect(x0 + .5, y0 + .5, anchoTabla - 1, IMG.cabeceraAlto + filas.length*IMG.filaAlto - 1);
+  c.restore();                          // fin del recorte redondeado
+  marco(); c.stroke();
 
   return cv;
 }
