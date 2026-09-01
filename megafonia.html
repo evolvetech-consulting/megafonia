@@ -41,7 +41,11 @@
   --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
 }
 
-*{box-sizing:border-box}
+*{box-sizing:border-box; min-width:0}
+/* Nada debe empujar la página a lo ancho: lo que no entre, que se acomode
+   o scrollee en su propia caja. `clip` en vez de `hidden` para no romper
+   la cabecera pegajosa. */
+html, body{overflow-x:clip; max-width:100%}
 body{
   margin:0; background:var(--papel); color:var(--tinta);
   font:400 15px/1.5 "IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
@@ -57,7 +61,7 @@ button,input,select,textarea{font:inherit; color:inherit}
   border-bottom:1px solid var(--linea);
 }
 .tope-fila{
-  max-width:1180px; margin:0 auto; padding:14px 20px;
+  max-width:100%; width:1180px; margin:0 auto; padding:14px 20px;
   display:flex; align-items:center; gap:16px; flex-wrap:wrap;
 }
 .marca{display:flex; align-items:center; gap:10px; margin-right:auto}
@@ -123,7 +127,9 @@ label.btn{display:inline-block; line-height:1.5}
 .estado-guardado.sucio::before{background:var(--alerta)}
 
 /* ── Pestañas ─────────────────────────────────────────── */
-.pestanas{max-width:1180px; margin:0 auto; padding:0 20px; display:flex; gap:4px}
+.pestanas{max-width:100%; width:1180px; margin:0 auto; padding:0 20px;
+  display:flex; gap:4px; overflow-x:auto; scrollbar-width:none}
+.pestanas::-webkit-scrollbar{display:none}
 .pestanas button{
   background:none; border:0; border-bottom:2px solid transparent; cursor:pointer;
   padding:11px 4px; margin-right:20px; color:var(--suave); font-weight:500;
@@ -132,7 +138,7 @@ label.btn{display:inline-block; line-height:1.5}
 .pestanas button:hover{color:var(--tinta)}
 .pestanas button[aria-selected="true"]{color:var(--acento); border-bottom-color:var(--acento)}
 
-main{max-width:1180px; margin:0 auto; padding:24px 20px 96px}
+main{max-width:100%; width:1180px; margin:0 auto; padding:24px 20px 96px}
 .vista[hidden]{display:none}
 
 /* ── Tarjetas de fecha ────────────────────────────────── */
@@ -278,6 +284,12 @@ select.asig option{background:var(--panel); color:var(--tinta); font-style:norma
 .icono.trazo svg{display:block; width:21px; height:21px}
 .acciones .icono.trazo + .btn{margin-left:6px}
 .icono.peligro:hover{color:var(--peligro); border-color:var(--peligro)}
+.icono.confirmando, .btn.confirmando{
+  color:#fff; background:var(--peligro); border-color:var(--peligro);
+  font:600 11px/1 "IBM Plex Mono",monospace; letter-spacing:.04em;
+}
+.btn.confirmando{font-size:13px; padding:8px 14px}
+.icono.confirmando:hover, .btn.confirmando:hover{color:#fff; filter:brightness(1.1)}
 
 /* ── Mensajes ─────────────────────────────────────────── */
 .selector-msj{display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap}
@@ -329,34 +341,52 @@ table.planilla tbody tr:nth-child(even) td{background:var(--panel2)}
 table.planilla td.hueco{color:var(--tenue)}
 
 /* ── Ajustes ──────────────────────────────────────────── */
-.puesto-cfg{
-  display:flex; align-items:center; gap:11px; padding:9px 0;
-  border-bottom:1px solid var(--linea);
+.puestos-cfg{
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto auto auto;
+  align-items:center; column-gap:0;
 }
-.puesto-cfg:last-of-type{border-bottom:0}
+/* El aire entre columnas va por dentro de cada celda, para que la línea
+   de abajo sea una sola y no una hilera de trocitos. */
+.puestos-cfg > * { padding-left:7px; padding-right:7px }
+.puestos-cfg > .puesto-cfg > * { padding-left:7px; padding-right:7px }
+.puestos-cfg .cab{
+  font:500 10px/1 "IBM Plex Mono",monospace; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--tenue); padding-bottom:10px;
+  border-bottom:1px solid var(--linea); white-space:nowrap;
+}
+.puestos-cfg .cab.centro{text-align:center}
+.puesto-cfg{display:contents}
+.puestos-cfg > .puesto-cfg > *{
+  border-bottom:1px solid var(--linea); padding-top:11px; padding-bottom:11px;
+}
+.puestos-cfg > .puesto-cfg:last-child > *{border-bottom:0}
 .puesto-cfg .tinte{
-  width:26px; height:26px; padding:0; border:1px solid var(--linea);
-  border-radius:7px; background:none; cursor:pointer; flex:none;
+  width:26px; height:26px; border:1px solid var(--linea);
+  border-radius:7px; background:none; cursor:pointer; box-sizing:border-box;
 }
+/* El selector de color es un input: el relleno de columna va como margen. */
+.puestos-cfg > .puesto-cfg > .tinte{padding:0; margin:11px 7px 11px 0}
 .puesto-cfg .rotulo{
-  flex:1; min-width:0; background:transparent; border:1px solid transparent;
-  border-radius:7px; padding:6px 8px; font-weight:500;
+  min-width:0; width:100%; background:transparent; border:1px solid var(--linea);
+  border-radius:7px; padding:7px 10px; font-weight:500; font-size:14.5px;
 }
 .puesto-cfg .rotulo:hover{border-color:var(--linea); background:var(--panel2)}
-.puesto-cfg .turno{
-  display:flex; align-items:center; gap:6px; color:var(--suave);
-  font-size:13px; white-space:nowrap; cursor:pointer;
-}
-.puesto-cfg .turno input{accent-color:var(--acento); cursor:pointer}
-.puesto-cfg .cupo{
-  display:flex; align-items:center; gap:6px; color:var(--suave);
-  font-size:13px; white-space:nowrap;
-}
+.puesto-cfg .turno{display:flex; justify-content:center}
+.puesto-cfg .turno input{accent-color:var(--acento); cursor:pointer; width:17px; height:17px}
+.puesto-cfg .cupo{display:flex; justify-content:center}
 .puesto-cfg .cupo input{
-  width:52px; background:var(--panel2); border:1px solid var(--linea);
-  border-radius:7px; padding:5px 7px; text-align:center;
+  width:56px; background:var(--panel2); border:1px solid var(--linea);
+  border-radius:7px; padding:6px 7px; text-align:center; font-size:14px;
 }
-@media (max-width:640px){ .puesto-cfg .cupo{font-size:12px} .puesto-cfg .cupo input{width:44px} }
+@media (max-width:640px){
+  .puestos-cfg > *, .puestos-cfg > .puesto-cfg > *{padding-left:4px; padding-right:4px}
+  .puestos-cfg > .puesto-cfg > .tinte{margin-right:4px}
+  .puestos-cfg .cab{font-size:9px; letter-spacing:.03em}
+  .puesto-cfg .rotulo{padding:7px 8px; font-size:14px}
+  .puesto-cfg .cupo input{width:44px; padding:6px 4px}
+  .puestos-cfg > .puesto-cfg > .tinte{width:22px; height:22px}
+  .puestos-cfg > .puesto-cfg > .icono.peligro{padding:6px 4px}
+}
 
 .ajustes{display:flex; gap:22px; flex-wrap:wrap; align-items:center}
 .grupo-dias{display:flex; gap:5px; flex-wrap:wrap}
@@ -396,7 +426,7 @@ select.asig.chocado{
 }
 .vacio{text-align:center; padding:56px 20px; color:var(--tenue)}
 .pie{
-  max-width:1180px; margin:0 auto; padding:28px 20px 44px;
+  max-width:100%; width:1180px; margin:0 auto; padding:28px 20px 44px;
   color:var(--tenue); font-size:13px; border-top:1px solid var(--linea);
 }
 .brindis{
@@ -409,8 +439,14 @@ select.asig.chocado{
 .brindis.visible{opacity:1; transform:translate(-50%,0)}
 
 @media (max-width:640px){
-  .tope-fila{padding:12px 16px; gap:12px}
+  .tope-fila{padding:12px 16px; gap:10px}
   .icono.trazo svg{width:22px; height:22px}
+  /* Cada grupo en su renglón: antes Guardar quedaba fuera de la pantalla. */
+  .mes-nav{flex:1 1 100%; justify-content:space-between}
+  .acciones{flex:1 1 100%; justify-content:flex-end; flex-wrap:wrap; row-gap:8px}
+  .estado-guardado{margin-right:auto}
+  .acciones .btn{flex:0 1 auto}
+  .marca{width:100%; margin-right:0}
   .marca{width:100%; margin-right:0}
   .mes-nav{flex:1}
   .mes-nav .etiqueta{flex:1}
@@ -419,6 +455,8 @@ select.asig.chocado{
   .pestanas button{margin-right:14px}
   .persona{grid-template-columns:1fr auto}
   .persona .chips{grid-column:1/-1}
+  .persona .contacto{flex-direction:column; gap:4px}
+  .fila-equipo{flex-direction:column; align-items:stretch}
   .rejilla{grid-template-columns:1fr}
   /* El nombre del puesto arriba y el desplegable abajo: en pantalla angosta
      una columna fija le comía el texto a los puestos de nombre largo. */
@@ -635,7 +673,12 @@ function fijarActivo(){
     ["puestos","equipo","config","plannings","notas","restricciones","enviados"]
       .forEach(k => { delete E[k]; });
   }
-  AC = E.equipos.find(t => t.id === E.equipoActual) || E.equipos[0];
+  let elegido = E.equipoActual;
+  try{
+    const suyo = localStorage.getItem("megafonia:equipo");
+    if(suyo && E.equipos.some(t => t.id === suyo)) elegido = suyo;
+  }catch(e){}
+  AC = E.equipos.find(t => t.id === elegido) || E.equipos[0];
   E.equipoActual = AC.id;
   if(!Array.isArray(AC.gente)) AC.gente = [];
   if(!AC.config) AC.config = {dias:[6], tardeExclusiva:false};
@@ -1184,7 +1227,9 @@ function vistaEquipo(){
           'title="Escribirle por WhatsApp">✆</button>' : "") +
         '<button class="icono" data-accion="activo" title="' + (p.activo ? "Dar de baja temporal" : "Reactivar") + '">' +
           (p.activo ? "◉" : "○") + '</button>' +
-        '<button class="icono peligro" data-accion="borrar" title="Quitar del equipo">✕</button>' +
+        '<button class="icono peligro' + (esperando("persona:" + p.id) ? " confirmando" : "") +
+          '" data-accion="borrar" title="Quitar del equipo">' +
+          (esperando("persona:" + p.id) ? "¿seguro?" : "✕") + '</button>' +
       '</div>' +
       '<div class="contacto">' +
         '<input class="dato" type="tel" value="' + esc(p.tel || "") + '" data-campo="tel" ' +
@@ -1205,30 +1250,39 @@ function vistaEquipo(){
         'aria-label="Color de ' + esc(pu.label) + '"' + (soloLectura ? " disabled" : "") + '>' +
       '<input class="rotulo" value="' + esc(pu.label) + '" data-campo="puesto-nombre" ' +
         'aria-label="Nombre del puesto"' + (soloLectura ? " readonly" : "") + '>' +
-      '<label class="turno" title="Un segundo turno el mismo día, como el de la tarde">' +
-        '<input type="checkbox" data-campo="otro-turno"' + (pu.otroTurno ? " checked" : "") +
-        (soloLectura ? " disabled" : "") + '>otro turno</label>' +
-      '<label class="cupo">lleva' +
-        '<input type="number" min="1" max="6" value="' + pu.cupo + '" data-campo="cupo"' +
-        (soloLectura ? " disabled" : "") + '>' +
-        (pu.cupo === 1 ? "persona" : "personas") + '</label>' +
+      '<span class="turno"><input type="checkbox" data-campo="otro-turno"' +
+        (pu.otroTurno ? " checked" : "") + (soloLectura ? " disabled" : "") +
+        ' aria-label="' + esc(pu.label) + ': es otro turno del día"></span>' +
+      '<span class="cupo"><input type="number" min="1" max="6" value="' + pu.cupo + '" ' +
+        'data-campo="cupo" aria-label="Personas en ' + esc(pu.label) + '"' +
+        (soloLectura ? " disabled" : "") + '></span>' +
       (soloLectura ? "" :
-        '<button class="icono peligro" data-borrar-puesto="' + i + '" ' +
-        'title="Quitar este puesto">✕</button>') +
+        '<button class="icono peligro' + (esperando("puesto:" + pu.id) ? " confirmando" : "") +
+        '" data-borrar-puesto="' + i + '" title="Quitar este puesto">' +
+        (esperando("puesto:" + pu.id) ? "¿seguro?" : "✕") + '</button>') +
     '</div>').join("");
+
+  const bloquePuestos = '<div class="puestos-cfg">' +
+    '<span class="cab"></span><span class="cab">Puesto</span>' +
+    '<span class="cab centro" title="Un segundo turno el mismo día, como el de la tarde">' +
+      'Otro turno</span>' +
+    '<span class="cab centro">Personas</span><span class="cab"></span>' +
+    puestos + '</div>';
 
   return '<section class="tarjeta" style="margin-top:0"><h2>Este equipo</h2>' +
       '<div class="fila-equipo">' +
         '<input class="nombre-equipo" value="' + esc(AC.nombre) + '" data-campo="nombre-equipo" ' +
           'aria-label="Nombre del equipo"' + (soloLectura ? " readonly" : "") + '>' +
         (soloLectura || E.equipos.length < 2 ? "" :
-          '<button class="btn" id="btn-borrar-equipo">Borrar equipo</button>') +
+          '<button class="btn' + (esperando("equipo") ? " confirmando" : "") +
+            '" id="btn-borrar-equipo">' +
+            (esperando("equipo") ? "¿Seguro? Tocá de nuevo" : "Borrar equipo") + '</button>') +
       '</div>' +
       '<p style="color:var(--suave);font-size:13px;margin:12px 0 0;max-width:66ch">' +
       'Cada equipo tiene su gente, sus puestos y sus plannings, sin mezclarse. ' +
       'Se cambia de uno a otro con el desplegable de arriba.</p></section>' +
     '<section class="tarjeta"><h2>Puestos a cubrir</h2>' +
-      puestos + (soloLectura ? "" :
+      bloquePuestos + (soloLectura ? "" :
       '<button class="btn" id="btn-sumar-puesto" style="margin-top:11px">+ Sumar puesto</button>') +
       '<p style="color:var(--suave);font-size:13px;margin:14px 0 0;max-width:66ch">' +
       'El nombre y el color son los que se ven en el planning y en la planilla del grupo. ' +
@@ -1569,6 +1623,22 @@ function recordarSesion(){
 }
 
 // Se llama DESPUÉS de tocar el estado: `instantanea` todavía guarda cómo estaba antes.
+// El visor corre la app en un marco que no deja abrir diálogos del navegador:
+// confirm() devuelve "no" siempre. Así que se confirma con un segundo toque.
+let porConfirmar = null, relojConfirmar = null;
+function confirmado(clave){
+  if(porConfirmar === clave){
+    porConfirmar = null; clearTimeout(relojConfirmar);
+    return true;
+  }
+  porConfirmar = clave;
+  clearTimeout(relojConfirmar);
+  relojConfirmar = setTimeout(() => { porConfirmar = null; render(); }, 5000);
+  render();
+  return false;
+}
+const esperando = clave => porConfirmar === clave;
+
 function marcarSucio(){
   pilaUndo.push(instantanea);
   if(pilaUndo.length > TOPE_HISTORIAL) pilaUndo.shift();
@@ -1625,10 +1695,8 @@ document.addEventListener("click", ev => {
     render(); return;
   }
   if(t.id === "btn-refrescar"){
-    if(sucio && !soloLectura &&
-       !confirm("Tenés cambios sin guardar y recargar los descarta.\n\n" +
-                "Cancelá, tocá Guardar y volvé a recargar si querés conservarlos."))
-      return;
+    if(sucio && !soloLectura && !confirmado("recargar"))
+      return brindis("Tenés cambios sin guardar. Tocá otra vez para recargar igual.");
     publicando = true;              // que no salte además el aviso del navegador
     location.reload();
     return;
@@ -1659,10 +1727,11 @@ document.addEventListener("click", ev => {
   }
   if(t.id === "btn-borrar-equipo"){
     if(E.equipos.length === 1) return brindis("Tiene que quedar al menos un equipo.");
-    if(!confirm("¿Borrar «" + AC.nombre + "» con toda su gente y sus plannings?\n\n" +
-                "Se puede deshacer con ↶ mientras no cierres la app.")) return;
+    if(!confirmado("equipo"))
+      return brindis("Tocá otra vez para borrar «" + AC.nombre + "» con todo lo suyo.");
     E.equipos = E.equipos.filter(t => t.id !== AC.id);
     E.equipoActual = E.equipos[0].id;
+    try{ localStorage.setItem("megafonia:equipo", E.equipoActual); }catch(e){}
     fijarActivo(); marcarSucio(); render();
     return brindis("Equipo borrado");
   }
@@ -1707,8 +1776,8 @@ document.addEventListener("click", ev => {
   if(t.dataset.borrarPuesto !== undefined){
     const i = Number(t.dataset.borrarPuesto), pu = PUESTOS[i];
     if(PUESTOS.length === 1) return brindis("Tiene que quedar al menos un puesto.");
-    if(!confirm("¿Quitar «" + pu.label + "»? Se borra de todas las fechas de todos los meses."))
-      return;
+    if(!confirmado("puesto:" + pu.id))
+      return brindis("Tocá otra vez para quitar «" + pu.label + "» de todas las fechas.");
     PUESTOS.splice(i, 1);
     Object.values(AC.plannings).forEach(pl => pl.fechas.forEach(f => { delete f.puestos[pu.id]; }));
     AC.gente.forEach(p => { p.puestos = p.puestos.filter(x => x !== pu.id); });
@@ -1737,8 +1806,8 @@ document.addEventListener("click", ev => {
   }
   if(t.dataset.accion === "activo"){ p.activo = !p.activo; marcarSucio(); render(); return; }
   if(t.dataset.accion === "borrar"){
-    if(!confirm("¿Sacar a " + p.nombre + " del equipo? Las fechas que ya tenía asignadas quedan vacías."))
-      return;
+    if(!confirmado("persona:" + p.id))
+      return brindis("Tocá otra vez para sacar a " + p.nombre + " del equipo.");
     AC.gente = AC.gente.filter(x => x.id !== p.id);
     Object.values(AC.plannings).forEach(pl => pl.fechas.forEach(f =>
       Object.keys(f.puestos).forEach(k =>
@@ -1759,11 +1828,15 @@ document.addEventListener("change", ev => {
       E.equipos.push({id:id, nombre:nombre, puestos:[], gente:[],
                       config:{dias:AC.config.dias.slice(), tardeExclusiva:false},
                       plannings:{}, notas:{}, restricciones:{}, enviados:{}});
-      E.equipoActual = id; fijarActivo(); marcarSucio(); render();
+      E.equipoActual = id;
+      try{ localStorage.setItem("megafonia:equipo", id); }catch(e){}
+      fijarActivo(); marcarSucio(); render();
       brindis("Cargá su gente y sus puestos en la pestaña Equipo");
       return;
     }
-    E.equipoActual = el.value; fijarActivo(); render();
+    E.equipoActual = el.value;
+    try{ localStorage.setItem("megafonia:equipo", el.value); }catch(e){}
+    fijarActivo(); render();
     return;                                          // cambiar de equipo no es un cambio que guardar
   }
   if(el.id === "archivo-datos"){
@@ -1954,8 +2027,7 @@ function importarDatos(archivo){
     const cuantos = equipos.length === 1
       ? equipos[0].gente.length + " personas"
       : equipos.length + " equipos";
-    if(!confirm("Vas a reemplazar todo lo que hay acá por lo del archivo (" + cuantos +
-                "). Podés deshacerlo con ↶. ¿Seguimos?")) return;
+    brindis("Importados " + cuantos + ". Si no era esto, deshacelo con la flecha.");
     restaurar(JSON.stringify({equipos:equipos, equipoActual:equipos[0].id}));
     marcarSucio(); render();
     brindis("Datos importados: tocá Guardar para conservarlos");
