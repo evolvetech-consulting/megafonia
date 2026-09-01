@@ -1020,8 +1020,15 @@ function render(){
         '<button data-salto="1" aria-label="Mes siguiente">›</button>' +
       '</div>' +
       '<div class="acciones">' +
-        '<span class="estado-guardado' + (sucio ? " sucio" : "") + '">' +
-          (soloLectura ? "solo lectura" : sucio ? "sin guardar" : "guardado") + '</span>' +
+        (function(){
+          if(soloLectura) return '<span class="estado-guardado">solo lectura</span>';
+          if(!sucio) return '<span class="estado-guardado">guardado</span>';
+          const quienes = equiposConCambios();
+          const ajeno = quienes.length && !quienes.includes(AC.nombre);
+          return '<span class="estado-guardado sucio" title="' +
+            (quienes.length ? "Cambios sin guardar en: " + esc(quienes.join(", ")) : "") + '">' +
+            'sin guardar' + (ajeno ? ' · ' + esc(quienes[0]) : "") + '</span>';
+        })() +
         '<button class="icono trazo" id="btn-refrescar" ' +
           'title="Recargar para traer la última versión" aria-label="Recargar">' +
           trazo("recargar") + '</button>' +
@@ -1626,18 +1633,46 @@ function agregarRestriccionManual(){
 const TOPE_HISTORIAL = 60;
 let pilaUndo = [], pilaRedo = [], instantanea = "", ultimoGuardado = "";
 
-const retrato = () => JSON.stringify({equipos:E.equipos, equipoActual:E.equipoActual});
+// Un mes que solo se hojeó deja un planning vacío, y guardar los descarta:
+// si el retrato los contara, "sin guardar" se encendería con solo mirar.
+// Tampoco entra qué equipo estás viendo, que no es un cambio del planning.
+function conDatos(plannings){
+  const out = {};
+  Object.keys(plannings || {}).forEach(clave => {
+    const pl = plannings[clave];
+    if(pl && pl.fechas && pl.fechas.some(f => Object.values(f.puestos).some(sl => sl.some(Boolean))))
+      out[clave] = pl;
+  });
+  return out;
+}
+const retratoDe = t => JSON.stringify({
+  id:t.id, nombre:t.nombre, puestos:t.puestos, gente:t.gente, config:t.config,
+  plannings:conDatos(t.plannings), notas:t.notas || {},
+  restricciones:t.restricciones || {}, enviados:t.enviados || {}
+});
+const retrato = () => JSON.stringify(E.equipos.map(retratoDe));
 
 function restaurar(snap){
   const d = JSON.parse(snap);
-  if(Array.isArray(d.equipos) && d.equipos.length){
-    E.equipos = d.equipos;
-    if(d.equipoActual) E.equipoActual = d.equipoActual;
+  const equipos = Array.isArray(d) ? d : (Array.isArray(d.equipos) ? d.equipos : null);
+  if(equipos && equipos.length){
+    E.equipos = equipos;
+    if(d && d.equipoActual) E.equipoActual = d.equipoActual;
   }
   fijarActivo();
   // mesActual queda como está: qué mes mirás es navegación, no un cambio que deshacer.
 }
 function recalcularSucio(){ sucio = instantanea !== ultimoGuardado; }
+
+// El guardado es de todo junto, pero conviene saber de quién es el cambio.
+function equiposConCambios(){
+  let antes;
+  try{ antes = JSON.parse(ultimoGuardado || "[]"); }catch(e){ return []; }
+  if(!Array.isArray(antes)) return [];
+  const previos = {};
+  antes.forEach(t => { const o = JSON.parse(t); previos[o.id] = t; });
+  return E.equipos.filter(t => retratoDe(t) !== previos[t.id]).map(t => t.nombre);
+}
 
 function memoria(){
   try{
@@ -2006,7 +2041,7 @@ function arrancarModoLocal(){
 function guardarLocal(){
   try{
     localStorage.setItem(LLAVE_LOCAL, retrato());
-    ultimoGuardado = instantanea;
+    ultimoGuardado = instantanea = retrato();
     recalcularSucio(); memoria(); render();
     brindis("Guardado en este equipo");
   }catch(e){
@@ -2084,8 +2119,8 @@ async function guardar(){
   publicando = true;
   try{
     await capArtifact.publish(documentoCompleto());
-    ultimoGuardado = instantanea;        // la referencia para "sin guardar" se mueve acá
-    sucio = false; memoria();            // la vista se recarga sola con la versión nueva
+    ultimoGuardado = instantanea = retrato();   // referencia fresca, no la del último cambio
+    sucio = false; memoria();                   // la vista se recarga sola con la versión nueva
   }catch(err){
     publicando = false;
     const code = (err && err.code) || "upstream_error";
