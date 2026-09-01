@@ -287,15 +287,33 @@ table.planilla td.hueco{color:var(--tenue)}
 label.switch{display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--suave)}
 label.switch input{accent-color:var(--acento); width:16px; height:16px; cursor:pointer}
 
-.aviso{
-  display:flex; gap:11px; align-items:flex-start; padding:13px 16px;
+/* Avisos: una tira discreta bajo el planning. Lo urgente ya se ve en rojo
+   en el propio desplegable; esto es el detalle, para cuando haga falta. */
+.tira-avisos{display:flex; flex-direction:column; gap:8px; margin-top:18px}
+details.avisos{
   border:1px solid var(--linea); border-left:3px solid var(--alerta);
-  border-radius:var(--r); background:var(--panel); margin-bottom:20px; font-size:14px;
+  border-radius:var(--r); background:var(--panel); font-size:14px; overflow:hidden;
 }
-.aviso b{font-weight:600}
-.aviso.doble{border-left-color:var(--p-streaming)}
-ul.choques{margin:7px 0 9px; padding-left:19px}
-ul.choques li{margin-bottom:3px}
+details.avisos.doble{border-left-color:var(--p-streaming)}
+details.avisos > summary{
+  cursor:pointer; padding:11px 15px; display:flex; align-items:center; gap:10px;
+  list-style:none; color:var(--suave); user-select:none;
+}
+details.avisos > summary::-webkit-details-marker{display:none}
+details.avisos > summary::after{
+  content:"▸"; margin-left:auto; color:var(--tenue); font-size:12px;
+  transition:transform .15s;
+}
+details[open].avisos > summary::after{transform:rotate(90deg)}
+details.avisos > summary:hover{background:var(--panel2); color:var(--tinta)}
+details.avisos > summary .emo{font-size:15px; line-height:1}
+details.avisos > summary b{color:var(--tinta); font-weight:600}
+details.avisos .detalle{
+  padding:2px 15px 15px 40px; color:var(--suave); line-height:1.55; max-width:70ch;
+}
+details.avisos b{font-weight:600}
+ul.choques{margin:0 0 10px; padding-left:19px}
+ul.choques li{margin-bottom:4px; color:var(--tinta)}
 select.asig.chocado{
   border-color:var(--p-streaming);
   background-color:color-mix(in srgb, var(--p-streaming) 9%, transparent);
@@ -458,6 +476,8 @@ function montarRaiz(){
   else document.addEventListener("DOMContentLoaded", montarRaiz, {once:true});
 }
 montarRaiz();
+let avisosAbiertos = false;
+try{ avisosAbiertos = localStorage.getItem("megafonia:avisos") === "1"; }catch(e){}
 let sucio = false, vista = "planning", tipoMsj = "planning", soloLectura = false,
     capArtifact = null, modoLocal = false;
 const LLAVE_LOCAL = "megafonia:estado";
@@ -830,22 +850,33 @@ function vistaPlanning(plan, activos){
         '</div>').join("") +
     '</article>').join("");
 
-  const avisoHuecos = sinCubrir ? '<div class="aviso"><span>⚠️</span><div><b>' + sinCubrir +
-      ' puesto(s) sin cubrir.</b> Asignalos a mano acá abajo, o habilitá a más gente en Equipo.</div></div>' : "";
+  const abierto = avisosAbiertos ? " open" : "";
+  const plegable = (clase, emoji, titulo, cuerpo) =>
+    '<details class="avisos ' + clase + '"' + abierto + '><summary>' +
+      '<span class="emo">' + emoji + '</span>' + titulo +
+    '</summary><div class="detalle">' + cuerpo + '</div></details>';
 
-  const avisoDobles = dobles.length ? '<div class="aviso doble"><span>👥</span><div><b>' +
-      (dobles.length === 1 ? "Una persona repetida" : dobles.length + " personas repetidas") +
-      ' el mismo día.</b><ul class="choques">' +
+  const avisoHuecos = sinCubrir ? plegable("huecos", "⚠️",
+      '<b>' + sinCubrir + (sinCubrir === 1 ? ' puesto sin cubrir' : ' puestos sin cubrir') + '</b>',
+      'Los desplegables vacíos dicen «a cubrir». Asignalos a mano, o habilitá a más gente ' +
+      'para esos puestos en <b>Equipo</b>.') : "";
+
+  const avisoDobles = dobles.length ? plegable("doble", "👥",
+      '<b>' + (dobles.length === 1 ? "Una persona repetida" : dobles.length + " personas repetidas") +
+      '</b> el mismo día',
+      '<ul class="choques">' +
       dobles.map(d => '<li><b>' + esc(nombreDe(d.id) || "?") + '</b> — ' +
         DIAS_SEM[d.dow].toLowerCase() + " " + d.dia + ": " + esc(d.motivo) + '</li>').join("") +
       '</ul>' + (dobles.some(d => d.tarde)
         ? 'Tenés activada <b>la regla de tarde exclusiva</b>. Si en tu iglesia es normal que ' +
           'quien sirve a la mañana se quede a la tarde, apagala en <b>Equipo</b>.'
-        : 'Nadie puede estar en dos puestos a la vez: cambiá uno de los dos.') +
-      '</div></div>' : "";
+        : 'Nadie puede estar en dos puestos a la vez: cambiá uno de los dos.')) : "";
 
-  return panelDisponibilidad() + avisoHuecos + avisoDobles +
-    '<div class="rejilla">' + tarjetas + '</div>' + panelReparto(plan);
+  const tira = (avisoHuecos || avisoDobles)
+    ? '<div class="tira-avisos">' + avisoHuecos + avisoDobles + '</div>' : "";
+
+  return panelDisponibilidad() +
+    '<div class="rejilla">' + tarjetas + '</div>' + tira + panelReparto(plan);
 }
 
 function panelDisponibilidad(){
@@ -1345,6 +1376,15 @@ function brindis(txt){
 }
 
 document.addEventListener("click", ev => {
+  const sum = ev.target.closest("details.avisos > summary");
+  if(sum){
+    avisosAbiertos = !sum.parentElement.open;     // el clic lo va a invertir
+    try{ localStorage.setItem("megafonia:avisos", avisosAbiertos ? "1" : "0"); }catch(e){}
+    document.querySelectorAll("details.avisos").forEach(d => {
+      if(d !== sum.parentElement) d.open = avisosAbiertos;   // que los dos vayan juntos
+    });
+    return;
+  }
   const t = ev.target.closest("button");
   if(!t) return;
 
