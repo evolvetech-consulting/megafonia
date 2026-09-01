@@ -245,6 +245,7 @@ details.a-mano summary:hover{color:var(--tinta)}
   background:var(--panel); border:1px solid var(--linea); color:var(--suave);
   padding:8px 15px; border-radius:20px; cursor:pointer; font-size:13.5px; font-weight:500;
 }
+.selector-msj button:not([aria-selected="true"]) { opacity:.9 }
 .selector-msj button[aria-selected="true"]{
   background:var(--acento-suave); border-color:var(--acento); color:var(--acento);
 }
@@ -656,6 +657,66 @@ function textoRecordatorio(){
   return out.join("\n");
 }
 
+// Foto del mes tal como se mandó al grupo la última vez. Contra esto se
+// comparan los cambios, para avisar solo lo que se movió.
+function fotoDelMes(plan){
+  const out = {};
+  plan.fechas.forEach(f => {
+    out[f.dia] = {};
+    PUESTOS.forEach(p => { out[f.dia][p.id] = f.puestos[p.id].slice(); });
+  });
+  return out;
+}
+function marcarComoEnviado(){
+  const {anio, mes} = mesVigente();
+  E.enviados = E.enviados || {};
+  E.enviados[claveMes(anio, mes)] = fotoDelMes(planningDe(anio, mes));
+}
+function hayReferencia(){
+  const {anio, mes} = mesVigente();
+  return !!(E.enviados && E.enviados[claveMes(anio, mes)]);
+}
+
+function textoCambios(){
+  const {anio, mes} = mesVigente();
+  const clave = claveMes(anio, mes);
+  const antes = E.enviados && E.enviados[clave];
+  if(!antes)
+    return "Todavía no mandaste el planning de este mes.\n\n" +
+           "Copiá o compartí primero «Planning del mes»: eso queda como referencia, " +
+           "y de ahí en más acá vas a ver solo lo que cambie.";
+
+  const plan = planningDe(anio, mes);
+  const lineas = [];
+  plan.fechas.forEach(f => {
+    const viejo = antes[f.dia];
+    const cambios = [];
+    PUESTOS.forEach(p => {
+      const ahora = f.puestos[p.id];
+      const era = (viejo && viejo[p.id]) || [];
+      ahora.forEach((id, i) => {
+        if(id === (era[i] || null)) return;
+        const quien = id ? nombreDe(id) : "_a cubrir_";
+        const cual  = era[i] ? nombreDe(era[i]) : "nadie";
+        cambios.push(p.emoji + " " + p.label + ": *" + quien + "* (antes " + cual + ")");
+      });
+    });
+    if(cambios.length){
+      lineas.push("*" + DIAS_SEM[f.dow] + " " + f.dia + "*");
+      lineas.push.apply(lineas, cambios);
+      lineas.push("");
+    }
+  });
+
+  if(!lineas.length)
+    return "No hubo ningún cambio desde lo último que mandaste.\n\n" +
+           "Si moviste algo y no aparece acá, fijate que sea de este mes.";
+
+  return ["🔄 *CAMBIOS — " + MESES[mes].toUpperCase() + " " + anio + "*", ""]
+    .concat(lineas)
+    .concat(["El resto queda igual que lo que mandé antes 🙏"]).join("\n");
+}
+
 /* ═══ Render ═══════════════════════════════════════════════════════ */
 
 function render(){
@@ -924,8 +985,11 @@ function tablaHTML(){
 }
 
 function vistaCompartir(){
-  const texto = tipoMsj === "planning" ? textoPlanning() : textoRecordatorio();
+  const texto = tipoMsj === "planning"   ? textoPlanning()
+              : tipoMsj === "cambios"    ? textoCambios()
+              :                            textoRecordatorio();
   const tabla = tipoMsj === "planning" ? tablaHTML() : "";
+  const cambios = tipoMsj === "cambios";
   return (tabla ?
     '<section class="tarjeta" style="margin-top:0"><h2>Planilla del mes</h2>' + tabla +
       '<div class="acciones" style="margin-top:16px">' +
@@ -937,15 +1001,24 @@ function vistaCompartir(){
     '<div class="selector-msj">' +
       '<button data-msj="planning" aria-selected="' + (tipoMsj==="planning") + '">Planning del mes</button>' +
       '<button data-msj="recordatorio" aria-selected="' + (tipoMsj==="recordatorio") + '">Recordatorio del próximo servicio</button>' +
+      '<button data-msj="cambios" aria-selected="' + cambios + '">Solo los cambios' +
+        (hayReferencia() ? "" : " ·") + '</button>' +
     '</div>' +
     '<textarea class="msj" id="area-msj" spellcheck="false">' + esc(texto) + '</textarea>' +
     '<div class="acciones" style="margin-top:14px">' +
       '<button class="btn primario" id="btn-copiar">Copiar mensaje</button>' +
       '<button class="btn" id="btn-wa">Abrir en WhatsApp</button>' +
     '</div>' +
-    '<p style="color:var(--suave);font-size:13px;margin-top:14px;max-width:62ch">' +
-    'Podés retocar el texto acá antes de copiarlo. «Abrir en WhatsApp» te deja elegir el grupo con el ' +
-    'mensaje ya escrito; si el navegador lo bloquea, usá Copiar y pegalo vos.</p></section>';
+    '<p style="color:var(--suave);font-size:13px;margin-top:14px;max-width:64ch">' +
+    (cambios
+      ? 'Compara el planning de ahora contra la última vez que mandaste el mes entero, y arma ' +
+        'el aviso con lo que se movió. Así no hace falta remandar la planilla cada vez que ' +
+        'alguien no puede.'
+      : 'Podés retocar el texto acá antes de copiarlo. «Abrir en WhatsApp» te deja elegir el grupo ' +
+        'con el mensaje ya escrito; si el navegador lo bloquea, usá Copiar y pegalo vos.' +
+        (tipoMsj === "planning"
+          ? ' Al copiarlo o compartirlo queda como referencia para los avisos de cambios.' : "")) +
+    '</p></section>';
 }
 
 /* ═══ Imagen de la planilla ═════════════════════════════════════════ */
@@ -1208,12 +1281,14 @@ const TOPE_HISTORIAL = 60;
 let pilaUndo = [], pilaRedo = [], instantanea = "", ultimoGuardado = "";
 
 const retrato = () => JSON.stringify({equipo:E.equipo, config:E.config, plannings:E.plannings,
-                                      notas:E.notas || {}, restricciones:E.restricciones || {}});
+                                      notas:E.notas || {}, restricciones:E.restricciones || {},
+                                      enviados:E.enviados || {}});
 
 function restaurar(snap){
   const d = JSON.parse(snap);
   E.equipo = d.equipo; E.config = d.config; E.plannings = d.plannings;
   E.notas = d.notas || {}; E.restricciones = d.restricciones || {};
+  E.enviados = d.enviados || {};
   // mesActual queda como está: qué mes mirás es navegación, no un cambio que deshacer.
 }
 function recalcularSucio(){ sucio = instantanea !== ultimoGuardado; }
@@ -1296,9 +1371,14 @@ document.addEventListener("click", ev => {
   if(t.dataset.msj){ tipoMsj = t.dataset.msj; render(); return; }
   if(t.id === "btn-imagen") return descargarImagen();
   if(t.id === "btn-exportar") return exportarDatos();
-  if(t.id === "btn-copiar") return copiar($("#area-msj").value);
-  if(t.id === "btn-wa"){
-    window.open("https://wa.me/?text=" + encodeURIComponent($("#area-msj").value), "_blank", "noopener");
+  if(t.id === "btn-copiar" || t.id === "btn-wa"){
+    const txt = $("#area-msj").value;
+    if(t.id === "btn-wa")
+      window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank", "noopener");
+    else copiar(txt);
+    if(tipoMsj === "planning" && !soloLectura){   // esto pasa a ser el punto de comparación
+      marcarComoEnviado(); marcarSucio(); render();
+    }
     return;
   }
   if(soloLectura) return;
@@ -1404,7 +1484,8 @@ async function copiar(txt){
 
 function documentoCompleto(){
   const limpio = {equipo:E.equipo, config:E.config, plannings:{}, mesActual:E.mesActual,
-                  notas:E.notas || {}, restricciones:E.restricciones || {}};
+                  notas:E.notas || {}, restricciones:E.restricciones || {},
+                  enviados:E.enviados || {}};
   // Los meses que solo se hojearon quedan vacíos: no se guardan.
   Object.keys(E.plannings).forEach(clave => {
     const pl = E.plannings[clave];
@@ -1456,7 +1537,8 @@ function bajarArchivo(blob, nombre){
 
 async function exportarDatos(){
   const json = JSON.stringify({equipo:E.equipo, config:E.config, plannings:E.plannings,
-                               notas:E.notas || {}, restricciones:E.restricciones || {}}, null, 2);
+                               notas:E.notas || {}, restricciones:E.restricciones || {},
+                               enviados:E.enviados || {}}, null, 2);
   const nombre = "megafonia-datos.json";
   if(modoLocal){ bajarArchivo(new Blob([json], {type:"application/json"}), nombre);
                  return brindis("Datos exportados"); }
@@ -1486,7 +1568,8 @@ function importarDatos(archivo){
       config: d.config && Array.isArray(d.config.dias) ? d.config : E.config,
       plannings: d.plannings && typeof d.plannings === "object" ? d.plannings : {},
       notas: d.notas && typeof d.notas === "object" ? d.notas : {},
-      restricciones: d.restricciones && typeof d.restricciones === "object" ? d.restricciones : {}
+      restricciones: d.restricciones && typeof d.restricciones === "object" ? d.restricciones : {},
+      enviados: d.enviados && typeof d.enviados === "object" ? d.enviados : {}
     }));
     marcarSucio(); render();
     brindis("Datos importados: tocá Guardar para conservarlos");
