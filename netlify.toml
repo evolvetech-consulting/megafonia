@@ -1,0 +1,15 @@
+# El sitio es la carpeta sitio/: archivos estáticos, sin compilación.
+[build]
+  publish = "sitio"
+  command = ""
+
+# El planning no debe quedar cacheado: se consulta al abrir.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
