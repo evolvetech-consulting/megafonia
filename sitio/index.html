@@ -1230,21 +1230,23 @@ function vistaEquipo(){
 }
 
 function tablaHTML(){
-  const {anio, mes} = mesVigente();
-  const plan = planningDe(anio, mes);
-  if(!plan.fechas.length) return "";
-  const cabecera = '<tr><th class="esquina">' + MESES[mes] + " " + anio + '</th>' +
-    PUESTOS.map(p => '<th><span class="punto" style="background:' + esc(p.color) + '"></span>' +
-      p.label + '</th>').join("") + '</tr>';
-  const cuerpo = plan.fechas.map(f =>
-    '<tr><th class="fila-fecha">' + DIAS_SEM[f.dow] + " " + f.dia + '</th>' +
-    PUESTOS.map(p => {
-      const q = f.puestos[p.id].filter(Boolean).map(nombreDe);
-      return '<td' + (q.length ? "" : ' class="hueco"') + '>' +
-        (q.length ? esc(q.join(" – ")) : "—") + '</td>';
-    }).join("") + '</tr>').join("");
-  return '<div class="planilla-marco"><table class="planilla"><thead>' + cabecera +
-    '</thead><tbody>' + cuerpo + '</tbody></table></div>';
+  // Una tabla por mes, para que lo que ves en pantalla sea lo mismo que se copia.
+  return mesesDeLaPlanilla().map(m => {
+    const plan = planningDe(m.anio, m.mes);
+    if(!plan.fechas.length) return "";
+    const cabecera = '<tr><th class="esquina">' + esc(rotuloMes(m)) + '</th>' +
+      PUESTOS.map(p => '<th><span class="punto" style="background:' + esc(p.color) + '"></span>' +
+        p.label + '</th>').join("") + '</tr>';
+    const cuerpo = plan.fechas.map(f =>
+      '<tr><th class="fila-fecha">' + DIAS_SEM[f.dow] + " " + f.dia + '</th>' +
+      PUESTOS.map(p => {
+        const q = f.puestos[p.id].filter(Boolean).map(nombreDe);
+        return '<td' + (q.length ? "" : ' class="hueco"') + '>' +
+          (q.length ? esc(q.join(" – ")) : "—") + '</td>';
+      }).join("") + '</tr>').join("");
+    return '<div class="planilla-marco"><table class="planilla"><thead>' + cabecera +
+      '</thead><tbody>' + cuerpo + '</tbody></table></div>';
+  }).join("");
 }
 
 function vistaCompartir(){
@@ -1254,7 +1256,9 @@ function vistaCompartir(){
   const tabla = tipoMsj === "planning" ? tablaHTML() : "";
   const cambios = tipoMsj === "cambios";
   return (tabla ?
-    '<section class="tarjeta" style="margin-top:0"><h2>Planilla del mes</h2>' + tabla +
+    '<section class="tarjeta" style="margin-top:0"><h2>' +
+      (mesesImagen > 1 ? "Planilla de " + mesesImagen + " meses" : "Planilla del mes") +
+      '</h2>' + tabla +
       '<div class="acciones" style="margin-top:16px">' +
         '<button class="btn primario" id="btn-copiar-img">Copiar imagen</button>' +
         '<button class="btn" id="btn-imagen">Descargar</button>' +
@@ -1262,9 +1266,14 @@ function vistaCompartir(){
           '<button data-paleta="oscura" aria-selected="' + (paletaImagen==="oscura") + '">Oscura</button>' +
           '<button data-paleta="clara" aria-selected="' + (paletaImagen==="clara") + '">Clara</button>' +
         '</span>' +
+        '<span class="selector-paleta" role="group" aria-label="Meses en la planilla">' +
+          [1,2,3].map(n => '<button data-meses="' + n + '" aria-selected="' +
+            (mesesImagen===n) + '">' + (n===1 ? "1 mes" : n + " meses") + '</button>').join("") +
+        '</span>' +
         '<span style="color:var(--suave);font-size:13px">Copiala y pegala en el grupo, ' +
-          'como la planilla de siempre. Al copiarla queda como referencia para los ' +
-          'avisos de cambios.</span>' +
+          'como la planilla de siempre. Con 3 meses entra el trimestre entero en una ' +
+          'sola foto, arrancando por el mes que estás viendo. Al copiarla queda como ' +
+          'referencia para los avisos de cambios.</span>' +
       '</div></section>' : "") +
     '<section class="tarjeta"' + (tabla ? "" : ' style="margin-top:0"') + '><h2>Mensaje</h2>' +
     '<div class="selector-msj">' +
@@ -1293,7 +1302,7 @@ function vistaCompartir(){
 /* ═══ Imagen de la planilla ═════════════════════════════════════════ */
 
 const IMG = {ancho:1580, filaAlto:78, cabeceraAlto:84, titulo:96, margen:34,
-             colFecha:250, logo:46, radio:16};
+             colFecha:250, logo:46, radio:16, aire:24};
 
 // Dos versiones de la misma planilla. La oscura es la que se ve en pantalla;
 // la clara imprime mejor y pesa menos en un chat con fondo blanco.
@@ -1305,6 +1314,24 @@ const PALETAS = {
 };
 let paletaImagen = "oscura";
 try{ paletaImagen = localStorage.getItem("megafonia:paleta") || "oscura"; }catch(e){}
+
+// Cuántos meses entran en la misma planilla. Escuela Sabática arma el trimestre
+// completo y hay que mandarlo en una sola foto, no en tres.
+let mesesImagen = 1;
+try{
+  mesesImagen = Math.min(6, Math.max(1, Number(localStorage.getItem("megafonia:meses")) || 1));
+}catch(e){}
+
+// Los meses de la planilla, arrancando por el que estás mirando.
+function mesesDeLaPlanilla(){
+  const {anio, mes} = mesVigente();
+  return Array.from({length:mesesImagen}, (_, i) => {
+    const d = new Date(Date.UTC(anio, mes + i, 1));
+    return {anio:d.getUTCFullYear(), mes:d.getUTCMonth()};
+  });
+}
+const rotuloMes = m => MESES[m.mes].charAt(0).toUpperCase() + MESES[m.mes].slice(1) +
+                       " " + m.anio;
 
 let imgLogo = null;
 function cargarLogo(){
@@ -1319,12 +1346,20 @@ function cargarLogo(){
 
 function dibujarPlanilla(){
   const P = PALETAS[paletaImagen] || PALETAS.oscura;
-  const {anio, mes} = mesVigente();
-  const plan = planningDe(anio, mes);
-  const filas = plan.fechas;
   const anchoCol = (IMG.ancho - IMG.margen*2 - IMG.colFecha) / PUESTOS.length;
+  const anchoTabla = IMG.ancho - IMG.margen*2;
+  const x0 = IMG.margen;
+
+  // Una tabla por mes, apiladas. Cada una lleva su mes en la esquina, así que
+  // el título de arriba se queda con el nombre del equipo y nada más.
+  const bloques = mesesDeLaPlanilla().map(m => ({
+    rotulo: rotuloMes(m),
+    filas:  planningDe(m.anio, m.mes).fechas
+  }));
+  const altoDe = b => IMG.cabeceraAlto + b.filas.length*IMG.filaAlto;
   // El título ya trae su propio aire arriba: abajo va un solo margen.
-  const alto = IMG.titulo + IMG.cabeceraAlto + filas.length*IMG.filaAlto + IMG.margen;
+  const alto = IMG.titulo + bloques.reduce((t, b) => t + altoDe(b), 0) +
+               IMG.aire*(bloques.length - 1) + IMG.margen;
 
   const cv = document.createElement("canvas");
   const esc2 = 2;
@@ -1347,89 +1382,92 @@ function dibujarPlanilla(){
   c.fillStyle = P.tinta; c.font = fuente(700, 29, "Archivo");
   c.fillText(AC.nombre.toUpperCase(), x, baseTitulo);   // el mes ya va en la esquina
 
-  const x0 = IMG.margen, y0 = IMG.titulo;
-  const anchoTabla = IMG.ancho - IMG.margen*2;
+  let y0 = IMG.titulo;
+  bloques.forEach((bloque, nb) => {
+    const filas = bloque.filas;
+    const altoTabla = altoDe(bloque);
+    const tope = y0;
+    const marco = () => {
+      c.beginPath();
+      if(c.roundRect) c.roundRect(x0, tope, anchoTabla, altoTabla, IMG.radio);
+      else c.rect(x0, tope, anchoTabla, altoTabla);
+    };
+    c.save(); marco(); c.clip();          // todo lo de adentro respeta las esquinas
 
-  const altoTabla = IMG.cabeceraAlto + filas.length*IMG.filaAlto;
-  const marco = () => {
-    c.beginPath();
-    if(c.roundRect) c.roundRect(x0, y0, anchoTabla, altoTabla, IMG.radio);
-    else c.rect(x0, y0, anchoTabla, altoTabla);
-  };
-  c.save(); marco(); c.clip();          // todo lo de adentro respeta las esquinas
+    // Cabecera, como la tabla de la pantalla: el mes en la esquina y cada
+    // puesto con su punto de color delante.
+    c.fillStyle = P.acento;
+    c.fillRect(x0, tope, anchoTabla, IMG.cabeceraAlto);
+    const medio = tope + IMG.cabeceraAlto/2;
 
-  // Cabecera, como la tabla de la pantalla: el mes en la esquina y cada
-  // puesto con su punto de color delante.
-  c.fillStyle = P.acento;
-  c.fillRect(x0, y0, anchoTabla, IMG.cabeceraAlto);
-  const medio = y0 + IMG.cabeceraAlto/2;
-
-  c.fillStyle = P.sobreAcento; c.textBaseline = "middle"; c.textAlign = "left";
-  c.font = fuente(600, 24, "Archivo");
-  const mesEsquina = MESES[mes].charAt(0).toUpperCase() + MESES[mes].slice(1) + " " + anio;
-  c.fillText(mesEsquina, x0 + 22, medio);
-
-  c.font = fuente(600, 23, "Archivo");
-  PUESTOS.forEach((p, i) => {
-    const cx = x0 + IMG.colFecha + anchoCol*i + anchoCol/2;
-    const etiqueta = p.label.toUpperCase();
-    const ancho = c.measureText(etiqueta).width;
-    const puntoX = cx - (ancho + 13 + 11)/2;
-
-    c.fillStyle = p.color;                   // el punto del color del puesto
-    c.beginPath();
-    if(c.roundRect) c.roundRect(puntoX, medio - 5.5, 11, 11, 3);
-    else c.rect(puntoX, medio - 5.5, 11, 11);
-    c.fill();
-
-    c.fillStyle = P.sobreAcento; c.textAlign = "left";
-    c.fillText(etiqueta, puntoX + 11 + 13, medio);
-  });
-
-  // Filas
-  filas.forEach((f, i) => {
-    const y = y0 + IMG.cabeceraAlto + i*IMG.filaAlto;
-    c.fillStyle = i % 2 ? P.cebra : P.papel;
-    c.fillRect(x0, y, anchoTabla, IMG.filaAlto);
-
-    c.textAlign = "left"; c.fillStyle = P.tinta;
+    c.fillStyle = P.sobreAcento; c.textBaseline = "middle"; c.textAlign = "left";
     c.font = fuente(600, 24, "Archivo");
-    c.fillText(DIAS_SEM[f.dow] + " " + f.dia, x0 + 22, y + IMG.filaAlto/2);
+    c.fillText(bloque.rotulo, x0 + 22, medio);
 
-    c.textAlign = "center"; c.font = fuente(400, 24, '"IBM Plex Sans"');
-    PUESTOS.forEach((p, j) => {
-      const q = f.puestos[p.id].filter(Boolean).map(nombreDe);
-      const cx = x0 + IMG.colFecha + anchoCol*j + anchoCol/2;
-      c.fillStyle = q.length ? P.tinta : P.suave;
-      const txt = q.length ? q.join(" · ") : "—";
-      if(q.length === 2 && c.measureText(txt).width > anchoCol - 26){
-        c.font = fuente(400, 21, '"IBM Plex Sans"');
-        c.fillText(q[0], cx, y + IMG.filaAlto/2 - 13);
-        c.fillText(q[1], cx, y + IMG.filaAlto/2 + 13);
-        c.font = fuente(400, 24, '"IBM Plex Sans"');
-      }else{
-        let f2 = 24;
-        while(f2 > 15 && c.measureText(txt).width > anchoCol - 26){
-          f2 -= 1; c.font = fuente(400, f2, '"IBM Plex Sans"');
-        }
-        c.fillText(txt, cx, y + IMG.filaAlto/2);
-        c.font = fuente(400, 24, '"IBM Plex Sans"');
-      }
+    c.font = fuente(600, 23, "Archivo");
+    PUESTOS.forEach((p, i) => {
+      const cx = x0 + IMG.colFecha + anchoCol*i + anchoCol/2;
+      const etiqueta = p.label.toUpperCase();
+      const ancho = c.measureText(etiqueta).width;
+      const puntoX = cx - (ancho + 13 + 11)/2;
+
+      c.fillStyle = p.color;                   // el punto del color del puesto
+      c.beginPath();
+      if(c.roundRect) c.roundRect(puntoX, medio - 5.5, 11, 11, 3);
+      else c.rect(puntoX, medio - 5.5, 11, 11);
+      c.fill();
+
+      c.fillStyle = P.sobreAcento; c.textAlign = "left";
+      c.fillText(etiqueta, puntoX + 11 + 13, medio);
     });
-  });
 
-  // Rejilla
-  c.strokeStyle = P.linea; c.lineWidth = 1;
-  for(let i = 0; i <= filas.length; i++){
-    const y = y0 + IMG.cabeceraAlto + i*IMG.filaAlto + .5;
-    c.beginPath(); c.moveTo(x0, y); c.lineTo(x0 + anchoTabla, y); c.stroke();
-  }
-  for(let j = 0; j <= PUESTOS.length; j++){
-    const x = x0 + IMG.colFecha + anchoCol*j + .5;
-    c.beginPath(); c.moveTo(x, y0); c.lineTo(x, y0 + altoTabla); c.stroke();
-  }
-  c.restore();                          // fin del recorte redondeado
-  marco(); c.stroke();
+    // Filas
+    filas.forEach((f, i) => {
+      const y = tope + IMG.cabeceraAlto + i*IMG.filaAlto;
+      c.fillStyle = i % 2 ? P.cebra : P.papel;
+      c.fillRect(x0, y, anchoTabla, IMG.filaAlto);
+
+      c.textAlign = "left"; c.fillStyle = P.tinta;
+      c.font = fuente(600, 24, "Archivo");
+      c.fillText(DIAS_SEM[f.dow] + " " + f.dia, x0 + 22, y + IMG.filaAlto/2);
+
+      c.textAlign = "center"; c.font = fuente(400, 24, '"IBM Plex Sans"');
+      PUESTOS.forEach((p, j) => {
+        const q = f.puestos[p.id].filter(Boolean).map(nombreDe);
+        const cx = x0 + IMG.colFecha + anchoCol*j + anchoCol/2;
+        c.fillStyle = q.length ? P.tinta : P.suave;
+        const txt = q.length ? q.join(" \u00b7 ") : "\u2014";
+        if(q.length === 2 && c.measureText(txt).width > anchoCol - 26){
+          c.font = fuente(400, 21, '"IBM Plex Sans"');
+          c.fillText(q[0], cx, y + IMG.filaAlto/2 - 13);
+          c.fillText(q[1], cx, y + IMG.filaAlto/2 + 13);
+          c.font = fuente(400, 24, '"IBM Plex Sans"');
+        }else{
+          let f2 = 24;
+          while(f2 > 15 && c.measureText(txt).width > anchoCol - 26){
+            f2 -= 1; c.font = fuente(400, f2, '"IBM Plex Sans"');
+          }
+          c.fillText(txt, cx, y + IMG.filaAlto/2);
+          c.font = fuente(400, 24, '"IBM Plex Sans"');
+        }
+      });
+    });
+
+    // Rejilla
+    c.strokeStyle = P.linea; c.lineWidth = 1;
+    for(let i = 0; i <= filas.length; i++){
+      const y = tope + IMG.cabeceraAlto + i*IMG.filaAlto + .5;
+      c.beginPath(); c.moveTo(x0, y); c.lineTo(x0 + anchoTabla, y); c.stroke();
+    }
+    for(let j = 0; j <= PUESTOS.length; j++){
+      const xr = x0 + IMG.colFecha + anchoCol*j + .5;
+      c.beginPath(); c.moveTo(xr, tope); c.lineTo(xr, tope + altoTabla); c.stroke();
+    }
+    c.restore();                          // fin del recorte redondeado
+    marco(); c.stroke();
+
+    y0 += altoTabla + IMG.aire;
+  });
 
   return cv;
 }
@@ -1470,11 +1508,14 @@ async function copiarImagen(){
 }
 
 async function descargarImagen(){
-  const {anio, mes} = mesVigente();
   const btn = $("#btn-imagen");
   if(btn){ btn.disabled = true; btn.textContent = "Preparando…"; }
   const restaurar = () => { if(btn){ btn.disabled = false; btn.textContent = "Descargar como imagen"; } };
-  const nombre = archivoDe(AC.nombre) + "-" + MESES[mes] + "-" + anio + ".png";
+  const ms = mesesDeLaPlanilla(), uno = ms[0], otro = ms[ms.length - 1];
+  const tramo = ms.length === 1
+    ? MESES[uno.mes] + "-" + uno.anio
+    : MESES[uno.mes] + "-a-" + MESES[otro.mes] + "-" + otro.anio;
+  const nombre = archivoDe(AC.nombre) + "-" + tramo + ".png";
   try{
     bajarArchivo(await imagenDelMes(), nombre);
     restaurar();
@@ -1685,6 +1726,11 @@ document.addEventListener("click", ev => {
   if(t.dataset.paleta){
     paletaImagen = t.dataset.paleta;
     try{ localStorage.setItem("megafonia:paleta", paletaImagen); }catch(e){}
+    render(); return;
+  }
+  if(t.dataset.meses){
+    mesesImagen = Number(t.dataset.meses);
+    try{ localStorage.setItem("megafonia:meses", mesesImagen); }catch(e){}
     render(); return;
   }
   if(t.id === "btn-copiar-img") return copiarImagen();
