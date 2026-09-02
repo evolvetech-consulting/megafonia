@@ -113,7 +113,14 @@ button,input,select,textarea{font:inherit; color:inherit}
   min-width:112px; text-align:center; text-transform:capitalize;
 }
 
-.acciones{display:flex; gap:8px; align-items:center}
+.acciones{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+/* Sin esto los botones se encogen hasta cortar su propio texto ("Copiar ima"). */
+.acciones > .btn, .acciones > .icono, .acciones > .selector-paleta{flex:none}
+/* La explicación se lleva un renglón entero en vez de pelear por el sitio. */
+.acciones > .pista{
+  flex:1 0 100%; color:var(--suave); font-size:13px; max-width:68ch; margin:2px 0 0;
+}
+.acciones .selector-paleta + .selector-paleta{margin-left:6px}
 .btn{
   background:var(--panel2); border:1px solid var(--linea); color:var(--tinta);
   padding:8px 14px; border-radius:var(--r); cursor:pointer; font-weight:500;
@@ -315,6 +322,7 @@ select.asig option{background:var(--panel); color:var(--tinta); font-style:norma
 .selector-paleta button{
   background:none; border:0; cursor:pointer; color:var(--suave);
   padding:5px 13px; border-radius:20px; font-size:13px; font-weight:500;
+  white-space:nowrap;
 }
 .selector-paleta button[aria-selected="true"]{background:var(--acento); color:var(--acento-tinta)}
 .selector-msj button[aria-selected="true"]{
@@ -329,7 +337,12 @@ textarea.msj{
 
 /* ── Planilla del mes ─────────────────────────────────── */
 .planilla-marco{overflow-x:auto; border:1px solid var(--linea); border-radius:var(--r)}
-table.planilla{border-collapse:collapse; width:100%; min-width:660px; font-size:14px}
+.planilla-marco + .planilla-marco{margin-top:14px}
+/* Ancho fijo: si no, cada mes reparte sus columnas por su propio contenido y
+   dos tablas seguidas quedan desalineadas entre sí. */
+table.planilla{border-collapse:collapse; width:100%; min-width:660px; font-size:14px;
+  table-layout:fixed}
+table.planilla th.esquina, table.planilla th.fila-fecha{width:17%}
 table.planilla th, table.planilla td{
   border-right:1px solid var(--linea); border-bottom:1px solid var(--linea);
   padding:11px 14px; text-align:center;
@@ -1270,10 +1283,9 @@ function vistaCompartir(){
           [1,2,3].map(n => '<button data-meses="' + n + '" aria-selected="' +
             (mesesImagen===n) + '">' + (n===1 ? "1 mes" : n + " meses") + '</button>').join("") +
         '</span>' +
-        '<span style="color:var(--suave);font-size:13px">Copiala y pegala en el grupo, ' +
-          'como la planilla de siempre. Con 3 meses entra el trimestre entero en una ' +
-          'sola foto, arrancando por el mes que estás viendo. Al copiarla queda como ' +
-          'referencia para los avisos de cambios.</span>' +
+        '<p class="pista">Copiala y pegala en el grupo, como la planilla de siempre. ' +
+          'Con 2 o 3 meses entran juntos en una sola foto, arrancando por el mes que ' +
+          'estás viendo. Al copiarla queda como referencia para los avisos de cambios.</p>' +
       '</div></section>' : "") +
     '<section class="tarjeta"' + (tabla ? "" : ' style="margin-top:0"') + '><h2>Mensaje</h2>' +
     '<div class="selector-msj">' +
